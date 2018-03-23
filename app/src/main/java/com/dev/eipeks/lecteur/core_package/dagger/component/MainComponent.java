@@ -1,9 +1,11 @@
 package com.dev.eipeks.lecteur.core_package.dagger.component;
 
-import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.MusicControllerModule;
+import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.controller.MusicControllerModule;
+import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.listeners.MusicListenersModule;
+import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.manager.ManagerModule;
 import com.dev.eipeks.lecteur.core_package.dagger.modules.viewmodels.MainVMModule;
 import com.dev.eipeks.lecteur.screen.activity.Main;
-import com.dev.eipeks.lecteur.service.MusicService;
+import com.dev.eipeks.lecteur.service.MainService;
 
 import dagger.Component;
 
@@ -11,10 +13,11 @@ import dagger.Component;
  * Created by eipeks on 3/19/18.
  */
 
-@Component(modules = {MusicControllerModule.class, MainVMModule.class})
+@Component(modules = {MusicControllerModule.class, MusicListenersModule.class,
+        ManagerModule.class, MainVMModule.class})
 public interface MainComponent {
 
-    void inject(MusicService musicService);
+    void inject(MainService mainService);
     void inject(Main main);
 
 }
