@@ -9,7 +9,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme" >
-        <service android:name=".service.MusicService" />
+        <service android:name=".service.MainService" />
         <activity android:name=".screen.activity.Main" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
