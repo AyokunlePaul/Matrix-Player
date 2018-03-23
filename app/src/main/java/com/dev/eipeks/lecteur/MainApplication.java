@@ -16,6 +16,8 @@ public class MainApplication extends Application {
 
     private MainComponent component;
 
+    public static boolean serviceBoundToActivity = false;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -26,11 +28,11 @@ public class MainApplication extends Application {
     }
 
     public static MainApplication get(Activity activity){
-        return (MainApplication) activity.getApplication();
+        return (MainApplication) activity.getApplicationContext();
     }
 
     public static MainApplication get(Service service){
-        return (MainApplication) service.getApplication();
+        return (MainApplication) service.getApplicationContext();
     }
 
     public MainComponent getComponent(){

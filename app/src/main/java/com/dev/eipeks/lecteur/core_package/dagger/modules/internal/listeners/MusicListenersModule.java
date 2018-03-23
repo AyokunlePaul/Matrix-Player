@@ -3,6 +3,9 @@ package com.dev.eipeks.lecteur.core_package.dagger.modules.internal.listeners;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 
+import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.connection.ConnectionModule;
+import com.dev.eipeks.lecteur.core_package.model.MainBinder;
+
 import dagger.Module;
 import dagger.Provides;
 
@@ -10,15 +13,21 @@ import dagger.Provides;
  * Created by eipeks on 3/23/18.
  */
 
-@Module
+@Module(includes = {ConnectionModule.class})
 public class MusicListenersModule {
+
+    private MainBinder binder;
+
+    public MusicListenersModule(MainBinder binder){
+        this.binder = binder;
+    }
 
     @Provides
     public MediaPlayer.OnPreparedListener provideOnPreparedListener(){
         return new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
-                mp.prepareAsync();
+                mp.start();
             }
         };
     }
@@ -28,7 +37,10 @@ public class MusicListenersModule {
         return new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-//                mp.
+                if (mp.getCurrentPosition() > 0){
+                    mp.reset();
+                    binder.getService().playNext();
+                }
             }
         };
     }
@@ -38,6 +50,7 @@ public class MusicListenersModule {
         return new MediaPlayer.OnErrorListener() {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
+                mp.reset();
                 return false;
             }
         };
