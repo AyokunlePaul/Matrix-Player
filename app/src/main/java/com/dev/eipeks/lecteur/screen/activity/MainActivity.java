@@ -1,18 +1,24 @@
 package com.dev.eipeks.lecteur.screen.activity;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
+import android.widget.Toast;
 
 import com.dev.eipeks.lecteur.MainApplication;
 import com.dev.eipeks.lecteur.R;
 import com.dev.eipeks.lecteur.core_package.dagger.component.MainComponent;
+import com.dev.eipeks.lecteur.core_package.managers.PermissionsManager;
 import com.dev.eipeks.lecteur.core_package.managers.PopUpManager;
 import com.dev.eipeks.lecteur.core_package.view.CoreActivity;
-import com.dev.eipeks.lecteur.databinding.MainLayoutBinding;
+import com.dev.eipeks.lecteur.databinding.SongPlayingLayoutBinding;
 import com.dev.eipeks.lecteur.screen.viewmodel.MainVM;
 import com.dev.eipeks.lecteur.service.MainService;
 
@@ -24,12 +30,14 @@ import javax.inject.Inject;
 
 public class MainActivity extends CoreActivity {
 
-    private MainLayoutBinding binding;
+    private SongPlayingLayoutBinding binding;
     private MainComponent component;
 
     private Intent serviceIntent;
 
     private PopUpManager popUpManager;
+
+    private PermissionsManager permissionsManager;
 
     @Inject
     ServiceConnection serviceConnection;
@@ -50,13 +58,16 @@ public class MainActivity extends CoreActivity {
         /*
         * Initialize binding
         * */
-        binding = DataBindingUtil.setContentView(this, R.layout.main_layout);
+        binding = DataBindingUtil.setContentView(this, R.layout.song_playing_layout);
 
 
         /*
-         *Initialize PopUpManager
+         *Initialize managers
          */
         popUpManager = new PopUpManager(this);
+        permissionsManager = new PermissionsManager(this);
+
+//        checkForPermissions();
     }
 
     @Override

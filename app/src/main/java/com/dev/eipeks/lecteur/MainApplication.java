@@ -7,6 +7,8 @@ import android.app.Service;
 import com.dev.eipeks.lecteur.core_package.dagger.component.DaggerMainComponent;
 import com.dev.eipeks.lecteur.core_package.dagger.component.MainComponent;
 import com.dev.eipeks.lecteur.core_package.dagger.modules.external.ContextModule;
+import com.dev.eipeks.lecteur.core_package.dagger.modules.internal.listeners.MusicListenersModule;
+import com.dev.eipeks.lecteur.core_package.model.MainBinder;
 
 /**
  * Created by eipeks on 3/19/18.
@@ -23,6 +25,7 @@ public class MainApplication extends Application {
         super.onCreate();
         component = DaggerMainComponent.builder()
                 .contextModule(new ContextModule(this))
+                .musicListenersModule(new MusicListenersModule(new MainBinder()))
                 .build();
 
     }
