@@ -1,36 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
         <variable
             name="song"
-            type="com.dev.eipeks.lecteur.core_package.model.SongModel"/>
-
-        <variable
-            name="handler"
-            type="com.dev.eipeks.lecteur.screen.activity.MainActivity"/>
+            type="com.dev.eipeks.matrixplayer.core.model.SongModel"/>
 
     </data>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="10dp">
+        android:orientation="horizontal"
+        android:padding="@dimen/standard_padding"
+        android:id="@+id/song_item_root">
 
-        <TextView
+        <com.facebook.drawee.view.SimpleDraweeView
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:scaleType="centerCrop"
+            android:id="@+id/song_image"
+            app:roundAsCircle="true"
+            app:placeholderImage="@drawable/music_playing_default"/>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@{song.songName}"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            android:orientation="vertical"
+            android:padding="@dimen/standard_padding">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@{song.songArtist}"
-            android:textStyle="bold"
-            android:textSize="14sp"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{song.songName}"
+                android:textStyle="bold"
+                android:lines="1"
+                android:ellipsize="end"
+                android:textSize="@dimen/standard_text_size" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@{song.songArtist}"
+                android:textStyle="bold"
+                android:lines="1"
+                android:ellipsize="end"
+                android:textSize="@dimen/small_text_size"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 
