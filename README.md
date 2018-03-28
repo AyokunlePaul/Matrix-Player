@@ -1,2 +1,2 @@
-# Lecteur
+# Matrix Player
 Android Music Player
