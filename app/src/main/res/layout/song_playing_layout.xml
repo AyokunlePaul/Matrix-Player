@@ -1,17 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="@dimen/circular_progress_bar"
+            android:layout_height="@dimen/circular_progress_bar"
+            android:layout_above="@id/song_info_link"
+            android:layout_centerHorizontal="true">
+
+            <include
+                android:id="@+id/progress_bar_link"
+                android:layout_width="@dimen/circular_progress_bar"
+                android:layout_height="@dimen/circular_progress_bar"
+                layout="@layout/progress_layout"
+                android:layout_centerHorizontal="true"/>
+
+            <include
+                android:id="@+id/song_image_link"
+                android:layout_width="@dimen/circular_image_view"
+                android:layout_height="@dimen/circular_image_view"
+                layout="@layout/image_playing_icon"
+                android:layout_centerInParent="true"/>
+
+        </RelativeLayout>
+
+        <include
+            android:id="@+id/song_info_link"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            layout="@layout/song_items"
+            android:layout_above="@id/controllers"/>
 
         <include
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/controllers"
             layout="@layout/controllers"
-            android:layout_alignParentBottom="true"
-            android:layout_marginBottom="@dimen/large_margin"/>
+            android:layout_alignParentBottom="true"/>
 
     </RelativeLayout>
 

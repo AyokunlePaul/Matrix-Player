@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Lecteur</string>
+    <string name="app_name">Matrix Player</string>
 
     <string name="permission_message">Lecteur needs your\npermission to access songs on this device. </string>
 

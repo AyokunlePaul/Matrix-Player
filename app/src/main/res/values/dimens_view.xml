@@ -8,6 +8,7 @@
     <dimen name="standard_elevation">10dp</dimen>
     <dimen name="standard_radius">200dp</dimen>
     <dimen name="standard_stroke_width">1dp</dimen>
+    <dimen name="standard_scale" format="float">0.7</dimen>
 
 
     <!--Alternate text sizes-->
@@ -18,5 +19,11 @@
 
     <!--Other sizes-->
     <dimen name="large_margin">20dp</dimen>
+    <dimen name="small_scale" format="float">0.5</dimen>
+    <dimen name="large_scale" format="float">0.9</dimen>
+    <dimen name="zero">0dp</dimen>
+    <dimen name="circular_progress_bar">250dp</dimen>
+    <dimen name="circular_image_view">200dp</dimen>
+
 
 </resources>
