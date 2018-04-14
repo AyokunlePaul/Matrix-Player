@@ -57,6 +57,8 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
         Bitmap bitmap = Utils.getSongIconPath(model.songPath);
 
         if (bitmap != null){
+            Log.d("IMAGE SIZE", Integer.toString(bitmap.getByteCount()));
+            Log.d("IMAGE SIZE BITMAP", Integer.toString(bitmap.getRowBytes() * bitmap.getHeight()));
             holder.getBinding().songImage.setImageURI(Utils.getImageUri(context, bitmap));
         }
         holder.getBinding().songItemRoot.setOnClickListener(new View.OnClickListener() {

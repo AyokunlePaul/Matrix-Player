@@ -1,5 +1,6 @@
 package com.dev.eipeks.matrixplayer.screen.activity;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -10,10 +11,23 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.widget.Toast;
 
+import com.dev.eipeks.matrixplayer.MainApplication;
 import com.dev.eipeks.matrixplayer.R;
+import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
 import com.dev.eipeks.matrixplayer.core.managers.PermissionsManager;
+import com.dev.eipeks.matrixplayer.core.model.SongModel;
 import com.dev.eipeks.matrixplayer.core.view.CoreActivity;
+import com.dev.eipeks.matrixplayer.databinding.MainCarouselBinding;
 import com.dev.eipeks.matrixplayer.databinding.MainLayoutBinding;
+import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by eipeks on 3/24/18.
@@ -21,15 +35,26 @@ import com.dev.eipeks.matrixplayer.databinding.MainLayoutBinding;
 
 public class MainCarousel extends CoreActivity {
 
-    private MainLayoutBinding binding;
+    private MainCarouselBinding binding;
 
     private PermissionsManager permissionsManager;
+
+    private MainComponent component;
+
+    @Inject
+    MainVM mainVM;
+
+    @Inject
+    Context context;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        binding = DataBindingUtil.setContentView(this, R.layout.main_layout);
+        binding = DataBindingUtil.setContentView(this, R.layout.main_carousel);
+
+        component = MainApplication.get(this).getComponent();
+        component.inject(this);
 
         permissionsManager = new PermissionsManager(this);
 
@@ -42,8 +67,7 @@ public class MainCarousel extends CoreActivity {
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                 requestCode == PermissionsManager.WRITE_EXTERNAL_PERMISSION_CODE){
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            querySongs();
             return;
         }
 
@@ -63,9 +87,26 @@ public class MainCarousel extends CoreActivity {
                         }
                     }).show();
         } else {
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
+            querySongs();
         }
+    }
+
+    private void querySongs(){
+        mainVM.queryLocalSongs(context)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new DisposableSingleObserver<List<SongModel>>() {
+            @Override
+            public void onSuccess(List<SongModel> songModels) {
+                startActivity(new Intent(MainCarousel.this, MainActivity.class));
+                finish();
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+        });
     }
 
 }

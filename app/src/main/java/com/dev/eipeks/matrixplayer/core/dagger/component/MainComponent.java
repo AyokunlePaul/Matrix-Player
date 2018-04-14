@@ -5,6 +5,7 @@ import com.dev.eipeks.matrixplayer.core.dagger.modules.internal.OfflineStoreModu
 import com.dev.eipeks.matrixplayer.core.dagger.modules.viewmodels.MainVMModule;
 import com.dev.eipeks.matrixplayer.core.dagger.scope.MainScope;
 import com.dev.eipeks.matrixplayer.screen.activity.MainActivity;
+import com.dev.eipeks.matrixplayer.screen.activity.MainCarousel;
 import com.dev.eipeks.matrixplayer.service.MainService;
 
 import dagger.Component;
@@ -19,5 +20,5 @@ public interface MainComponent {
 
     void inject(MainService mainService);
     void inject(MainActivity mainActivity);
-
+    void inject(MainCarousel mainCarousel);
 }

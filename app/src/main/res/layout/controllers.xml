@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+        <variable
+            name="ClickListener"
+            type="com.dev.eipeks.matrixplayer.screen.activity.MainActivity.ControllersClickListener"/>
+    </data>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="?attr/actionBarSize"
-        android:background="@null"
-        android:gravity="center">
+        android:gravity="center"
+        android:background="@color/white">
 
         <ImageButton
             android:layout_width="0dp"
@@ -20,7 +24,9 @@
             android:scaleY="@dimen/small_scale"
             android:src="@drawable/favorite_drawable"
             android:elevation="@dimen/standard_elevation"
-            android:background="@null"/>
+            android:background="@null"
+            android:id="@+id/favorite_song_button"
+            android:onClick="@{ClickListener::onFavoriteIconClicked}"/>
 
         <ImageButton
             android:layout_width="0dp"
@@ -32,7 +38,9 @@
             android:scaleY="@dimen/standard_scale"
             android:src="@drawable/prev_button_drawable"
             android:elevation="@dimen/standard_elevation"
-            android:background="@null"/>
+            android:background="@null"
+            android:id="@+id/play_previous_song_button"
+            android:onClick="@{ClickListener::onPlayPreviousIconClicked}"/>
 
         <ImageButton
             android:layout_width="0dp"
@@ -40,9 +48,11 @@
             android:layout_weight="1.6"
             android:layout_margin="@dimen/standard_margin"
             android:scaleType="center"
-            android:src="@drawable/ic_play_arrow"
+            android:src="@drawable/ic_play"
             android:elevation="@dimen/standard_elevation"
-            android:background="@drawable/ripple_play_button"/>
+            android:background="@drawable/ripple_play_button"
+            android:id="@+id/play_pause_button"
+            android:onClick="@{ClickListener::onPlayPauseIconClicked}"/>
 
         <ImageButton
             android:layout_width="0dp"
@@ -54,7 +64,9 @@
             android:scaleY="@dimen/standard_scale"
             android:src="@drawable/next_button_drawable"
             android:elevation="@dimen/standard_elevation"
-            android:background="@null"/>
+            android:background="@null"
+            android:id="@+id/play_next_song_button"
+            android:onClick="@{ClickListener::onPlayNextIconClicked}"/>
 
         <ImageButton
             android:layout_width="0dp"
@@ -66,7 +78,9 @@
             android:scaleY="@dimen/small_scale"
             android:src="@drawable/shuffle_drawable"
             android:elevation="@dimen/standard_elevation"
-            android:background="@null"/>
+            android:background="@null"
+            android:id="@+id/shuffle_songs_button"
+            android:onClick="@{ClickListener::onShuffleIconClicked}"/>
 
     </LinearLayout>
 

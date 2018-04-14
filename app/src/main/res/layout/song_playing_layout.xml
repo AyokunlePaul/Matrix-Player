@@ -4,36 +4,37 @@
 
     <RelativeLayout
         android:layout_width="wrap_content"
-        android:layout_height="match_parent">
-
-        <RelativeLayout
-            android:layout_width="@dimen/circular_progress_bar"
-            android:layout_height="@dimen/circular_progress_bar"
-            android:layout_above="@id/song_info_link"
-            android:layout_centerHorizontal="true">
-
-            <include
-                android:id="@+id/progress_bar_link"
-                android:layout_width="@dimen/circular_progress_bar"
-                android:layout_height="@dimen/circular_progress_bar"
-                layout="@layout/progress_layout"
-                android:layout_centerHorizontal="true"/>
-
-            <include
-                android:id="@+id/song_image_link"
-                android:layout_width="@dimen/circular_image_view"
-                android:layout_height="@dimen/circular_image_view"
-                layout="@layout/image_playing_icon"
-                android:layout_centerInParent="true"/>
-
-        </RelativeLayout>
+        android:layout_height="match_parent"
+        android:background="@drawable/background">
 
         <include
-            android:id="@+id/song_info_link"
+            layout="@layout/toolbar_song_playing"
+            android:id="@+id/song_playing_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            layout="@layout/song_items"
-            android:layout_above="@id/controllers"/>
+            android:layout_height="wrap_content"/>
+
+        <RelativeLayout
+            style="@style/LayoutMatchParent"
+            android:layout_below="@id/song_playing_toolbar"
+            android:layout_above="@id/controllers">
+
+            <com.xw.repo.BubbleSeekBar
+                android:layout_width="match_parent"
+                android:layout_height="30dp"
+                android:id="@+id/progress_bar"
+                android:layout_alignParentBottom="true"
+                app:bsb_track_color="@color/ash"
+                app:bsb_bubble_color="@color/transparent_gray"
+                app:bsb_second_track_color="@color/gray"/>
+
+            <include
+                android:id="@+id/song_info_link"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                layout="@layout/song_items_playing"
+                android:layout_alignParentTop="true"/>
+
+        </RelativeLayout>
 
         <include
             android:layout_width="match_parent"

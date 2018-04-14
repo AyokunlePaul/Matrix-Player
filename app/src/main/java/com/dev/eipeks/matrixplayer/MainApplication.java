@@ -3,6 +3,7 @@ package com.dev.eipeks.matrixplayer;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Service;
+import android.content.Context;
 
 import com.dev.eipeks.matrixplayer.core.dagger.component.DaggerMainComponent;
 import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
