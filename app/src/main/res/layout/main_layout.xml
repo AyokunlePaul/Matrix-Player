@@ -1,16 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout xmlns:android="http://schemas.android.com/apk/res/android">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        style="@style/LayoutMatchParent">
 
-        <android.support.v7.widget.RecyclerView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:id="@+id/song_list"/>
+        <LinearLayout
+            style="@style/LayoutMatchParent"
+            android:orientation="vertical"
+            android:id="@+id/song_list_layout">
+
+            <include
+                android:id="@+id/main_toolbar_link"
+                layout="@layout/toolbar_main"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <android.support.v7.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/song_list"
+                app:fastScrollEnabled="true"
+                app:fastScrollHorizontalThumbDrawable="@drawable/thumb_state_drawable"
+                app:fastScrollHorizontalTrackDrawable="@drawable/line_state_drawable"
+                app:fastScrollVerticalThumbDrawable="@drawable/thumb_state_drawable"
+                app:fastScrollVerticalTrackDrawable="@drawable/line_state_drawable"/>
+
+        </LinearLayout>
+
+        <include
+            layout="@layout/song_playing_layout"
+            style="@style/LayoutMatchParent"
+            android:visibility="gone"
+            android:id="@+id/song_playing_link"/>
 
     </RelativeLayout>
 

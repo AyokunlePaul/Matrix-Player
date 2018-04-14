@@ -16,7 +16,7 @@ import android.util.Log;
 import com.dev.eipeks.matrixplayer.MainApplication;
 import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
 import com.dev.eipeks.matrixplayer.core.model.SongModel;
-import com.dev.eipeks.matrixplayer.core.store.OfflineStore;
+import com.dev.eipeks.matrixplayer.global.AppState;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 
 import java.io.IOException;
@@ -26,6 +26,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import io.reactivex.observers.DisposableObserver;
+
 
 /**
  * Created by eipeks on 3/19/18.
@@ -37,15 +38,18 @@ public class MainService extends Service {
 
     private int currentSongPosition = 0;
 
-    private List<SongModel> songs = new ArrayList<>();
+    public List<SongModel> songs = new ArrayList<>();
 
-    MediaPlayer player;
+    public MediaPlayer mediaPlayer;
+
+    private MainVM.OnSongPlayedListener onSongPlayedListener;
+    private MainVM.OnSongPausedListener onSongPausedListener;
+    private MainVM.OnSongStoppedListener onSongStoppedListener;
+
+    private boolean needsToSeek = false;
 
     @Inject
     MainVM mainVM;
-
-    @Inject
-    OfflineStore store;
 
     @Override
     public void onCreate() {
@@ -55,7 +59,9 @@ public class MainService extends Service {
 
         initializePlayer();
 
-        Log.i("Lecteur: Player", String.valueOf(songs.size()));
+//        mediaPlayer.getCurrentPosition();
+
+        Log.i("Song List size", String.valueOf(songs.size()));
 
         super.onCreate();
 
@@ -64,90 +70,133 @@ public class MainService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        Log.i("Lecteur: Service", "Activity bounded");
+        Log.i("Service", "Activity bounded");
+        songs = mainVM.getSongs();
         return new MainBinder();
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
-        player.stop();
-        player.release();
+        mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
+        mainVM.setLastSongPlayedDuration(mediaPlayer.getCurrentPosition());
+        mediaPlayer.stop();
+        mediaPlayer.release();
 
         return true;
     }
 
     private void initializePlayer(){
-        player = new MediaPlayer();
-        player.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+        mediaPlayer = new MediaPlayer();
+        mediaPlayer.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
+        mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
+                if (needsToSeek){
+                    mp.seekTo((int) mainVM.getLastSongPlayedDuration());
+                    needsToSeek = false;
+                    return;
+                }
                 mp.start();
+                mainVM.setLastSongPlayedDuration(0);
             }
         });
-        player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                if (player.getCurrentPosition() >= 0){
-                    mp.reset();
-                    playNext();
-                }
+                mp.reset();
+                playNext();
+                Log.i("OnCompletion", "OnPlaybackCompleted Listener");
             }
         });
-        player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
+                Log.e("onError", String.valueOf(what));
+                mainVM.setLastSongPlayedDuration(0);
+                mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
                 return false;
             }
         });
+        mediaPlayer.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
+            @Override
+            public void onSeekComplete(MediaPlayer mp) {
+                mp.start();
+                mainVM.setLastSongPlayedDuration(0);
+            }
+        });
     }
 
-    public void play(int position){
+    public void play(int position, long initialDuration){
         this.currentSongPosition = position;
-        playSong();
+        mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+        mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
+        playSong(initialDuration);
     }
 
-    private void playSong(){
-        player.reset();
+    private void playSong(long initialDuration){
+        needsToSeek = (initialDuration != 0);
+        mediaPlayer.reset();
 
         SongModel currentSong = songs.get(currentSongPosition);
 
-        store.cacheCurrentSong(currentSong);
+        mainVM.setLastSongPositionPlayed(currentSongPosition);
+        mainVM.setLastSongPlayed(currentSong);
 
         long _id = currentSong._id;
 
         Uri songUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, _id);
 
         try {
-            Log.d("Lecteur: DATA SOURCE", "Setting data source");
-            player.setDataSource(MainApplication.get(this), songUri);
+            Log.d("SOURCE", "Setting data source");
+            mediaPlayer.setDataSource(MainApplication.get(this), songUri);
         } catch (IOException e) {
-            Log.e("Lecteur: DATA SOURCE", e.getLocalizedMessage());
+            Log.e("SOURCE", e.getLocalizedMessage());
             e.printStackTrace();
         }
-        player.prepareAsync();
+        onSongPlayedListener.onSongPlayed();
+        mediaPlayer.prepareAsync();
     }
 
     public void playNext(){
+        Log.d("NEXT", "Playing next song");
+
         currentSongPosition++;
         if (currentSongPosition >= songs.size()){
             currentSongPosition = 0;
-            playSong();
+            playSong(0);
+            return;
         }
+
+        playSong(0);
     }
 
     public void playPrevious(){
+        Log.d("PREVIOUS", "Playing previous song");
         currentSongPosition--;
         if (currentSongPosition <= 0){
             currentSongPosition = songs.size() - 1;
-            playSong();
+            playSong(0);
+            return;
         }
+        playSong(0);
     }
 
-    public void setSongs(List<SongModel> model){
-        this.songs = model;
-        Log.i("Matrix Player: Service", String.valueOf(model.size()));
+    public void pausePlaying(){
+        mediaPlayer.pause();
+        mainVM.setLastSongPlayedDuration(mediaPlayer.getCurrentPosition());
+        mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
+        onSongPausedListener.onSongPaused();
+    }
+
+    public void setServiceVariables(MainVM.OnSongPlayedListener onSongPlayedListener,
+                                    MainVM.OnSongStoppedListener onSongStoppedListener,
+                                    MainVM.OnSongPausedListener onSongPausedListener){
+        this.onSongPausedListener = onSongPausedListener;
+        this.onSongPlayedListener = onSongPlayedListener;
+        this.onSongStoppedListener = onSongStoppedListener;
+
+//        Log.i("Size of song passed", String.valueOf(model.size()));
     }
 
     public class MainBinder extends Binder {

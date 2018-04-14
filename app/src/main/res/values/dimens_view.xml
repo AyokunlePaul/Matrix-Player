@@ -16,6 +16,7 @@
     <dimen name="small_text_size">12sp</dimen>
     <dimen name="large_text_size">18sp</dimen>
     <dimen name="very_large_text_size">20sp</dimen>
+    <dimen name="extra_large_text_size">30sp</dimen>
 
     <!--Other sizes-->
     <dimen name="large_margin">20dp</dimen>
@@ -25,5 +26,19 @@
     <dimen name="circular_progress_bar">250dp</dimen>
     <dimen name="circular_image_view">200dp</dimen>
 
+
+    <!--Dimes sizes-->
+    <dimen name="size_10">10dp</dimen>
+    <dimen name="size_20">20dp</dimen>
+    <dimen name="size_30">30dp</dimen>
+    <dimen name="size_40">40dp</dimen>
+    <dimen name="size_50">50dp</dimen>
+    <dimen name="size_60">60dp</dimen>
+    <dimen name="size_70">70dp</dimen>
+    <dimen name="size_80">80dp</dimen>
+    <dimen name="size_90">90dp</dimen>
+    <dimen name="size_100">100dp</dimen>
+    <dimen name="size_120">120dp</dimen>
+    <dimen name="size_150">150dp</dimen>
 
 </resources>

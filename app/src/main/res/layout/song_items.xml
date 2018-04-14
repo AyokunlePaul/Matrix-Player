@@ -6,7 +6,10 @@
         <variable
             name="song"
             type="com.dev.eipeks.matrixplayer.core.model.SongModel"/>
-
+        <import type="android.view.View"/>
+        <variable
+            name="offline"
+            type="com.dev.eipeks.matrixplayer.core.store.OfflineStore"/>
     </data>
 
     <LinearLayout
@@ -14,20 +17,23 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="@dimen/standard_padding"
-        android:id="@+id/song_item_root">
+        android:id="@+id/song_item_root"
+        android:gravity="center_vertical">
 
         <com.facebook.drawee.view.SimpleDraweeView
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/size_50"
+            android:layout_weight="2"
             android:scaleType="centerCrop"
             android:id="@+id/song_image"
             app:roundAsCircle="true"
             app:placeholderImage="@drawable/music_playing_default"/>
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:layout_weight="9"
             android:padding="@dimen/standard_padding">
 
             <TextView
@@ -49,6 +55,15 @@
                 android:textSize="@dimen/small_text_size"/>
 
         </LinearLayout>
+
+        <com.wang.avi.AVLoadingIndicatorView
+            android:layout_width="0dp"
+            android:layout_height="@dimen/size_30"
+            android:layout_weight="1"
+            app:indicatorName="LineScalePulseOutIndicator"
+            app:indicatorColor="@color/black"
+            android:id="@+id/loading_indicator"
+            android:visibility="@{song.equals(offline.lastSongPlayed) ? View.VISIBLE : View.INVISIBLE}"/>
 
     </LinearLayout>
 
