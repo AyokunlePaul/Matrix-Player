@@ -3,7 +3,9 @@
 
     <android.support.v7.widget.Toolbar
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimary"
+        android:padding="0dp">
 
         <LinearLayout
             android:orientation="horizontal"
@@ -17,7 +19,9 @@
                 android:layout_height="wrap_content"
                 android:padding="@dimen/standard_padding"
                 android:text="Home"
+                android:layout_gravity="center_vertical"
                 android:textStyle="bold"
+                android:textColor="@color/white"
                 android:textSize="@dimen/large_text_size"/>
 
         </LinearLayout>

@@ -15,7 +15,7 @@ import java.io.ByteArrayOutputStream;
 
 public class Utils {
 
-    public static Bitmap getSongIconPath(String path){
+    public static Bitmap getSongBitmap(String path){
         Bitmap bitmap = null;
 
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
@@ -31,6 +31,9 @@ public class Utils {
     }
 
     public static Uri getImageUri(Context context, Bitmap bitmap){
+        if (bitmap == null){
+            return null;
+        }
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
         String path = MediaStore.Images.Media.insertImage(context.getContentResolver(),

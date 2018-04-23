@@ -8,7 +8,6 @@ import android.content.Context;
 import com.dev.eipeks.matrixplayer.core.dagger.component.DaggerMainComponent;
 import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
 import com.dev.eipeks.matrixplayer.core.dagger.modules.external.ContextModule;
-import com.facebook.drawee.backends.pipeline.Fresco;
 
 /**
  * Created by eipeks on 3/19/18.
@@ -17,6 +16,8 @@ import com.facebook.drawee.backends.pipeline.Fresco;
 public class MainApplication extends Application {
 
     private MainComponent component;
+
+    private static Context context;
 
     public static boolean serviceBoundToActivity = false;
 
@@ -27,8 +28,7 @@ public class MainApplication extends Application {
                 .contextModule(new ContextModule(this))
                 .build();
 
-        Fresco.initialize(this);
-
+        context = this;
     }
 
     public static MainApplication get(Activity activity){
@@ -37,6 +37,10 @@ public class MainApplication extends Application {
 
     public static MainApplication get(Service service){
         return (MainApplication) service.getApplicationContext();
+    }
+
+    public static Context getMainApplicationContext(){
+        return context;
     }
 
     public MainComponent getComponent(){

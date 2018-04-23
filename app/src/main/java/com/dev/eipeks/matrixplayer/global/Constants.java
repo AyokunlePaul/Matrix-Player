@@ -10,4 +10,7 @@ public interface Constants {
     String CONSTANT_CURRENT_VIEW_STATE = "Current View State";
     String CONSTANT_LAST_SONG_POSITION_PLAYED = "Last song position played";
     String CONSTANT_LAST_SONG_DURATION = "Last Song Duration";
+    String CONSTANT_FAVORITE_SONGS = "Favorites";
+    String CONSTANT_EMPTY_STRINGS = "";
+    String CONSTANT_SHUFFLE_STATE = "";
 }

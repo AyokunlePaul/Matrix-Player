@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <data>
+        <import type="com.dev.eipeks.matrixplayer.global.Constants"/>
+        <import type="android.view.View"/>
+        <variable
+            name="song"
+            type="com.dev.eipeks.matrixplayer.core.model.SongModel"/>
+        <variable
+            name="controllersListener"
+            type="com.dev.eipeks.matrixplayer.screen.activity.MainActivity.ControllersClickListener"/>
+    </data>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/size_50"
+        android:background="@drawable/snackbar_state_background"
+        android:onClick="@{controllersListener::onMainLayoutClicked}"
+        android:visibility="@{song != null ? View.VISIBLE : View.GONE}">
+
+        <TextView
+            style="@style/LayoutWrapHeight"
+            android:padding="@dimen/standard_padding"
+            android:textSize="@dimen/large_text_size"
+            android:layout_centerVertical="true"
+            android:id="@+id/current_song_playing"
+            android:layout_toStartOf="@id/play_pause_button"
+            android:ellipsize="end"
+            android:lines="1"
+            android:text="@{song.songName}"/>
+
+        <ImageButton
+            android:layout_width="@dimen/size_50"
+            android:layout_height="@dimen/size_50"
+            android:src="@drawable/ic_play"
+            android:id="@+id/play_pause_button"
+            android:scaleY=".7"
+            android:scaleX=".7"
+            android:background="@drawable/icons_state_background"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="@dimen/standard_margin"
+            android:onClick="@{controllersListener::onPlayPauseIconClicked}"/>
+
+    </RelativeLayout>
+
+</layout>

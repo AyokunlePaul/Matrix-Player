@@ -2,5 +2,6 @@
     <string name="app_name">Matrix Player</string>
 
     <string name="permission_message">Lecteur needs your\npermission to access songs on this device. </string>
+    <string name="no_music_file">Ooops. We couldn\'t find any music file\non this device</string>
 
 </resources>

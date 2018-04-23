@@ -1,11 +1,15 @@
 package com.dev.eipeks.matrixplayer.screen.viewmodel;
 
+import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
+import android.support.v4.app.NotificationCompat;
 import android.widget.Toast;
 
+import com.dev.eipeks.matrixplayer.MainApplication;
+import com.dev.eipeks.matrixplayer.R;
 import com.dev.eipeks.matrixplayer.core.model.SongModel;
 import com.dev.eipeks.matrixplayer.core.store.OfflineStore;
 import com.dev.eipeks.matrixplayer.core.view.CoreVM;
@@ -14,6 +18,7 @@ import com.dev.eipeks.matrixplayer.global.AppState;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Callable;
 
 import javax.inject.Inject;
@@ -45,6 +50,10 @@ public class MainVM extends CoreVM {
 
     private long lastSongPlayedDuration;
 
+    private boolean shuffleState;
+
+    private Notification notification;
+
     @Inject
     public MainVM(OfflineStore offlineStore){
         this.offlineStore = offlineStore;
@@ -62,10 +71,14 @@ public class MainVM extends CoreVM {
                 if (cursor != null && cursor.moveToFirst()){
                     do {
                         long _id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-                        String songName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME));
+                        String songName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
                         String songArtist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
                         String songPath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
                         long songDuration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+
+                        if (songArtist.contains("unknown")){
+                            songArtist = "Unknown Artist";
+                        }
 
                         SongModel model = new SongModel(songName, songArtist, _id, songPath, songDuration);
                         songList.add(model);
@@ -141,6 +154,15 @@ public class MainVM extends CoreVM {
         return lastSongPlayedDuration;
     }
 
+    public void setShuffleState(boolean shuffleState){
+        offlineStore.setShuffleState(shuffleState);
+    }
+
+    public boolean getShuffleState(){
+        getStoredShuffleState();
+        return shuffleState;
+    }
+
     private void getCachedLastState(){
         appState = offlineStore.getAppState();
     }
@@ -161,6 +183,10 @@ public class MainVM extends CoreVM {
         lastSongPlayedDuration = offlineStore.getLastSongDuration();
     }
 
+    private void getStoredShuffleState(){
+        shuffleState = offlineStore.getShuffleState();
+    }
+
     public interface OnSongPlayedListener{
         void onSongPlayed();
     }
@@ -171,5 +197,9 @@ public class MainVM extends CoreVM {
 
     public interface OnSongPausedListener{
         void onSongPaused();
+    }
+
+    public interface ShuffleSelectedListener{
+        void onShuffleSelected(boolean shuffleState);
     }
 }

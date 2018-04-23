@@ -8,10 +8,12 @@ import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.dev.eipeks.matrixplayer.MainApplication;
 import com.dev.eipeks.matrixplayer.R;
@@ -19,23 +21,21 @@ import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
 import com.dev.eipeks.matrixplayer.core.managers.PermissionsManager;
 import com.dev.eipeks.matrixplayer.core.managers.PopUpManager;
 import com.dev.eipeks.matrixplayer.core.model.SongModel;
-import com.dev.eipeks.matrixplayer.core.model.recyclerview.SongLayoutManager;
 import com.dev.eipeks.matrixplayer.core.model.recyclerview.SongListAdapter;
 import com.dev.eipeks.matrixplayer.core.store.OfflineStore;
 import com.dev.eipeks.matrixplayer.core.view.CoreActivity;
 import com.dev.eipeks.matrixplayer.databinding.ControllersBinding;
-import com.dev.eipeks.matrixplayer.databinding.ImagePlayingIconBinding;
 import com.dev.eipeks.matrixplayer.databinding.MainLayoutBinding;
+import com.dev.eipeks.matrixplayer.databinding.SnackbarLayoutBinding;
 import com.dev.eipeks.matrixplayer.databinding.SongPlayingLayoutBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarMainBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarSongPlayingBinding;
 import com.dev.eipeks.matrixplayer.global.AppState;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 import com.dev.eipeks.matrixplayer.service.MainService;
+import com.xw.repo.BubbleSeekBar;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -58,7 +58,6 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
     //Song playing binding
     private ControllersBinding controllersBinding;
-    private ImagePlayingIconBinding imagePlayingBinding;
     private ToolbarSongPlayingBinding toolbarSongPlayingBinding;
 
 
@@ -69,11 +68,34 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     private MainVM.OnSongPlayedListener onSongPlayedListener;
     private MainVM.OnSongStoppedListener onSongStoppedListener;
     private MainVM.OnSongPausedListener onSongPausedListener;
+    private MainVM.ShuffleSelectedListener shuffleSelectedListener;
 
     private Intent serviceIntent;
 
+    private Snackbar snackbar;
+    private SnackbarLayoutBinding snackbarBinding;
+
     private PopUpManager popUpManager;
     private PermissionsManager permissionsManager;
+    private LinearLayoutManager layoutManager;
+
+    private RecyclerView.OnScrollListener scrollListener = new RecyclerView.OnScrollListener() {
+        @Override
+        public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+            super.onScrollStateChanged(recyclerView, newState);
+        }
+
+        @Override
+        public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+            if (dy > 0){
+                snackbar.dismiss();
+            } else if (dy < 0){
+                if (snackbarBinding.getRoot().getVisibility() == View.VISIBLE){
+                    snackbar.show();
+                }
+            }
+        }
+    };
 
     private long currentProgress = 0;
 
@@ -104,22 +126,28 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        Log.d("Lifecycle", "onCreate");
         super.onCreate(savedInstanceState);
 
         /*
-        * Get MainComponent
-        * */
+         * Get MainComponent
+         */
         component = MainApplication.get(this).getComponent();
         component.inject(this);
 
         /*
-        * Initialize binding
-        * */
+         * Initialize binding
+         */
         initBinding();
 
         /*
-        *  Set correct view
-        * */
+         * Initialize snackbar
+         */
+        initSnackbar();
+
+        /*
+         *  Set correct view
+         */
         if (!(mainVM.getCurrentViewState() == null)){
             restoreState();
         }
@@ -131,29 +159,42 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         permissionsManager = new PermissionsManager(this);
 
         /*
-        * Set up Adapter
-        * */
+         * Set up Adapter
+         */
         adapter = new SongListAdapter(mainVM.getSongs(), MainActivity.this);
         adapter.setPlayClickedListener(MainActivity.this);
 
         /*
-        * Bind adapter to recycler view
-        * */
-        binding.songList.setLayoutManager(new SongLayoutManager(this));
+         *  Initialize Layout Manager
+         */
+        layoutManager = new LinearLayoutManager(this);
+
+        /*
+         * Check if there are no songs on the device
+         */
+        if (mainVM.getSongs().size() == 0){
+            binding.songList.setVisibility(View.GONE);
+            binding.noSongFoundLayout.setVisibility(View.VISIBLE);
+        }
+
+        /*
+         * Bind adapter to recycler view
+         */
+        binding.songList.setLayoutManager(layoutManager);
         binding.songList.setNestedScrollingEnabled(false);
         binding.songList.setAdapter(adapter);
-        binding.songList.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                recyclerView.smoothScrollToPosition(dy);
-            }
-        });
+        binding.songList.setHasFixedSize(true);
+        binding.songList.setItemViewCacheSize(mainVM.getSongs().size() * 2);
+        binding.songList.setDrawingCacheEnabled(true);
+        binding.songList.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+        binding.songList.addOnScrollListener(scrollListener);
     }
 
     @Override
     public void onBackPressed() {
         if (mainVM.getCurrentViewState().toString().equals(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT.toString())){
             mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT);
+            snackbarBinding.setSong(mainVM.getLastSongPlayed());
             setCorrectLayout();
             return;
         }
@@ -163,6 +204,7 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
     @Override
     protected void onStart() {
+        Log.d("Lifecycle", "onStart");
         super.onStart();
 
         initAppEventListeners();
@@ -174,12 +216,25 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
     @Override
     protected void onResume() {
+        Log.d("Lifecycle", "onResume");
         super.onResume();
+        if (mainVM.getLastSongPlayed() != null){
+            currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
+        } else {
+            currentProgress = 0;
+        }
         setCorrectLayout();
     }
 
     @Override
+    protected void onPause() {
+        Log.d("Lifecycle", "onPause");
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
+        Log.d("Lifecycle", "onDestroy");
         stopService(serviceIntent);
         serviceConnection = null;
         serviceIntent = null;
@@ -187,15 +242,27 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     }
 
     @Override
-    public void onPlaySongClicked(int position) {
+    public void onPlaySongClicked(SongModel model) {
         if (progressObservable != null || observer != null){
             if (!observer.isDisposed()){
                 stopProgressCount();
             }
         }
-        mainService.play(position, 0);
-        mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
-        mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+        currentProgress = 0;
+        mainVM.setLastSongPlayedDuration(currentProgress);
+        mainService.play(model, 0, AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+    }
+
+    private void initSnackbar(){
+        snackbar = Snackbar.make(binding.getRoot(), "", Snackbar.LENGTH_INDEFINITE);
+        Snackbar.SnackbarLayout snackbarLayout = (Snackbar.SnackbarLayout) snackbar.getView();
+        snackbarLayout.removeAllViews();
+        snackbarLayout.setPadding(0, 0, 0, 0);
+        snackbarBinding = DataBindingUtil.inflate(getLayoutInflater(), R.layout.snackbar_layout, null, false);
+        snackbarBinding.setSong(mainVM.getLastSongPlayed());
+        snackbarBinding.setControllersListener(new ControllersClickListener());
+
+        snackbarLayout.addView(snackbarBinding.getRoot(), 0);
     }
 
     private void initBinding(){
@@ -211,6 +278,30 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         //Set listeners
         controllersBinding.setClickListener(new ControllersClickListener());
         toolbarSongPlayingBinding.setToolbarClickListener(new ToolbarClickListener());
+
+        songPlayingLayoutBinding.progressBar.setOnProgressChangedListener(new BubbleSeekBar.OnProgressChangedListener() {
+            @Override
+            public void onProgressChanged(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat, boolean fromUser) {
+                Log.d("onProgressChanged", "Int progress" + Integer.toString(progress));
+                Log.d("onProgressChanged", "Float progress" + Float.toString(progressFloat));
+                Log.d("onProgressChanged", "From User" + Boolean.toString(fromUser));
+            }
+
+            @Override
+            public void getProgressOnActionUp(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat) {
+                Log.d("getProgressOnActionUp", "Int progress" + Integer.toString(progress));
+                Log.d("getProgressOnActionUp", "Float progress" + Float.toString(progressFloat));
+                long seekToValue = (progress * mainVM.getLastSongPlayed().duration) / 100;
+                mainService.seekTo((int)seekToValue);
+            }
+
+            @Override
+            public void getProgressOnFinally(BubbleSeekBar bubbleSeekBar, int progress, float progressFloat, boolean fromUser) {
+                Log.d("getProgressOnFinally", "Int progress" + Integer.toString(progress));
+                Log.d("getProgressOnFinally", "Float progress" + Float.toString(progressFloat));
+                Log.d("getProgressOnFinally", "From User" + Boolean.toString(fromUser));
+            }
+        });
     }
 
     private void initAppEventListeners(){
@@ -218,6 +309,10 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             @Override
             public void onSongPlayed() {
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
+                snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
+                if (mainVM.getCurrentViewState().toString().equals(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT.toString())){
+                    snackbarBinding.setSong(mainVM.getLastSongPlayed());
+                }
                 setCorrectLayout();
                 createObservableAndObserver(mainVM.getLastSongPlayedDuration(), mainVM.getLastSongPlayed().duration);
                 startProgressCount();
@@ -228,6 +323,9 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             @Override
             public void onSongStopped() {
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_play);
+                snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_play);
+                stopProgressCount();
+
             }
         };
 
@@ -235,6 +333,19 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             @Override
             public void onSongPaused() {
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_play);
+                snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_play);
+                pauseProgressCount();
+            }
+        };
+
+        shuffleSelectedListener = new MainVM.ShuffleSelectedListener() {
+            @Override
+            public void onShuffleSelected(boolean shuffleState) {
+                if (shuffleState){
+                    binding.songPlayingLink.controllers.shuffleSongsButton.setSelected(true);
+                } else {
+                    binding.songPlayingLink.controllers.shuffleSongsButton.setSelected(false);
+                }
             }
         };
     }
@@ -243,7 +354,13 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     *  Method to ensure to current layout matches correct state
     * */
     private void restoreState(){
+        //I'm initializing the observer and observable to prevent crash in onCreate
+        createObservableAndObserver(0,0);
         setCorrectLayout();
+    }
+
+    private void cacheAllStates(){
+
     }
 
     private void setCorrectLayout(){
@@ -253,20 +370,27 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             return;
         }
 
+        if (mainVM.getShuffleState()){
+            binding.songPlayingLink.controllers.shuffleSongsButton.setSelected(true);
+        }
+
         if (state.toString().equals(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT.toString())){
             binding.songListLayout.setVisibility(View.GONE);
+            snackbarBinding.getRoot().setVisibility(View.GONE);
             binding.songPlayingLink.getRoot().setVisibility(View.VISIBLE);
-            binding.songPlayingLink.progressBar.setProgress(mainVM.getLastSongPlayedDuration());
+            binding.songPlayingLink.progressBar.setProgress(currentProgress);
 
             if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
+                snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
             } else {
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_play);
+                snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_play);
             }
-//            binding.songPlayingLink.songInfoLink.songImage.setVisibility(View.GONE);
             binding.songPlayingLink.songInfoLink.setSong(mainVM.getLastSongPlayed());
         } else if (state.toString().equals(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT.toString())){
             binding.songListLayout.setVisibility(View.VISIBLE);
+            snackbarBinding.getRoot().setVisibility(View.VISIBLE);
             binding.songPlayingLink.getRoot().setVisibility(View.GONE);
         }
 
@@ -276,6 +400,19 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         Log.d("Current song duration", Long.toString(duration));
 
         final long totalEmission = (duration / 1000);
+
+        long hoursInSong = totalEmission / 3600;
+        long minutesInPassed = totalEmission / 60;
+        long secondsInPassed = totalEmission % 60;
+
+        String totalTime = hoursInSong > 0 ?
+                String.format(Locale.ENGLISH, "%02d:%02d%02d", hoursInSong, minutesInPassed, secondsInPassed) :
+                String.format(Locale.ENGLISH, "%02d:%02d", minutesInPassed, secondsInPassed);
+        binding.songPlayingLink.songDuration.setText(totalTime);
+
+        if (observer != null && progressObservable != null){
+            stopProgressCount();
+        }
 
         progressObservable = Observable.intervalRange((startValue / 1000), totalEmission,
                 0, 1000, TimeUnit.MILLISECONDS).subscribeOn(Schedulers.io())
@@ -288,6 +425,17 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
                 Log.d("Long emitted", Long.toString(currentProgress));
 
+                long hoursPresentInSong = totalEmission / 3600;
+
+                long hoursPassed = aLong / 3600;
+                long minutesPassed = aLong / 60;
+                long secondsPassed = aLong % 60;
+
+                String elapsedTimeFormat = hoursPresentInSong > 0 ?
+                        String.format(Locale.ENGLISH, "%02d:%02d%02d", hoursPassed, minutesPassed, secondsPassed) :
+                        String.format(Locale.ENGLISH, "%02d:%02d", minutesPassed, secondsPassed);
+
+                binding.songPlayingLink.elapsedTime.setText(elapsedTimeFormat);
                 binding.songPlayingLink.progressBar.setProgress(currentProgress);
             }
 
@@ -298,7 +446,8 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
             @Override
             public void onComplete() {
-                binding.songPlayingLink.progressBar.setProgress(0);
+                currentProgress = 0;
+                binding.songPlayingLink.progressBar.setProgress(currentProgress);
             }
         };
     }
@@ -308,8 +457,10 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     }
 
     private void stopProgressCount(){
-        binding.songPlayingLink.progressBar.setProgress(0);
+        currentProgress = 0;
+        binding.songPlayingLink.progressBar.setProgress(currentProgress);
         observer.dispose();
+        observer = null;
         progressObservable = null;
     }
 
@@ -317,11 +468,12 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         observer.dispose();
         binding.songPlayingLink.progressBar.setProgress(currentProgress);
         progressObservable = null;
+        observer = null;
     }
 
     public class ControllersClickListener{
         public void onFavoriteIconClicked(View view){
-
+            Toast.makeText(MainActivity.this, "Favorite option will be out in subsequent release.", Toast.LENGTH_SHORT).show();
         }
 
         public void onPlayPreviousIconClicked(View view){
@@ -331,10 +483,13 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
 
         public void onPlayPauseIconClicked(View view){
             if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
+                Log.d("STATE", "Song was playing");
+                mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
                 mainService.pausePlaying();
-                pauseProgressCount();
             } else {
-                mainService.play(mainVM.getLastSongPositionPlayed(), mainVM.getLastSongPlayedDuration());
+                Log.d("STATE", "Song was not playing");
+                mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
+                mainService.play(mainVM.getLastSongPlayed(), mainVM.getLastSongPlayedDuration(), null);
             }
         }
 
@@ -344,7 +499,27 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         }
 
         public void onShuffleIconClicked(View view){
+            if (mainVM.getShuffleState()){
+                shuffleSelectedListener.onShuffleSelected(false);
+                mainVM.setShuffleState(false);
+            } else {
+                shuffleSelectedListener.onShuffleSelected(true);
+                mainVM.setShuffleState(true);
+            }
+        }
 
+        public void onMainLayoutClicked(View view){
+            mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+
+            if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
+                stopProgressCount();
+                createObservableAndObserver(mainVM.getLastSongPlayedDuration(), mainVM.getLastSongPlayed().duration);
+                startProgressCount();
+            } else {
+                currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
+                binding.songPlayingLink.progressBar.setProgress(currentProgress);
+            }
+            setCorrectLayout();
         }
     }
 
@@ -354,4 +529,5 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             setCorrectLayout();
         }
     }
+
 }

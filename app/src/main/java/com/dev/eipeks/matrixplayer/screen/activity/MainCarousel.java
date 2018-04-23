@@ -78,12 +78,22 @@ public class MainCarousel extends CoreActivity {
     private void checkForPermissions(){
         if (!permissionsManager.checkForWriteExternalPermission()){
             new AlertDialog.Builder(this)
+                    .setTitle("Permission Needed")
                     .setMessage(getResources().getString(R.string.permission_message))
+                    .setCancelable(false)
                     .setPositiveButton("OKAY", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             dialog.dismiss();
                             permissionsManager.requestWriteExternalPermission();
+                        }
+                    })
+                    .setNeutralButton("NO THANKS", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                            Toast.makeText(context, "Permission needed to load the\nsongs on this device", Toast.LENGTH_SHORT).show();
+                            finish();
                         }
                     }).show();
         } else {
