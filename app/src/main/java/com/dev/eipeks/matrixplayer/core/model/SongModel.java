@@ -25,6 +25,28 @@ public class SongModel implements Comparable<SongModel>{
     public long duration;
 
     @Override
+    public int hashCode() {
+        return (int)_id;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null){
+            return false;
+        }
+
+        if (!(obj instanceof SongModel)){
+            return false;
+        }
+
+        if (obj == this){
+            return true;
+        }
+
+        return this.songPath.equals(((SongModel)obj).songPath);
+    }
+
+    @Override
     public int compareTo(@NonNull SongModel o) {
         return this.songName.compareToIgnoreCase(o.songName);
     }

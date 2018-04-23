@@ -4,25 +4,9 @@
 
     <RelativeLayout
         style="@style/LayoutMatchParent"
-        android:background="@color/transparent_gray">
+        android:background="@drawable/carusel_page_background">
 
-        <com.wang.avi.AVLoadingIndicatorView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:indicatorName="BallSpinFadeLoaderIndicator"
-            app:indicatorColor="@color/black"
-            style="@style/AVLoadingIndicatorView.Large"
-            android:id="@+id/loading_indicator"
-            android:layout_centerInParent="true"/>
 
-        <TextView
-            style="@style/LayoutWrapHeight"
-            android:layout_below="@id/loading_indicator"
-            android:layout_marginTop="@dimen/size_20"
-            android:id="@+id/list_of_songs_queried"
-            android:gravity="center"
-            android:padding="@dimen/standard_padding"
-            android:textSize="@dimen/standard_text_size"/>
 
     </RelativeLayout>
 

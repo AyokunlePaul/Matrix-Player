@@ -5,7 +5,7 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:background="@drawable/background">
+        android:background="@drawable/song_playing_background">
 
         <include
             layout="@layout/toolbar_song_playing"
@@ -18,14 +18,42 @@
             android:layout_below="@id/song_playing_toolbar"
             android:layout_above="@id/controllers">
 
-            <com.xw.repo.BubbleSeekBar
-                android:layout_width="match_parent"
-                android:layout_height="30dp"
-                android:id="@+id/progress_bar"
+
+            <RelativeLayout
+                style="@style/LayoutWrapHeight"
                 android:layout_alignParentBottom="true"
-                app:bsb_track_color="@color/ash"
-                app:bsb_bubble_color="@color/transparent_gray"
-                app:bsb_second_track_color="@color/gray"/>
+                android:paddingBottom="@dimen/size_10"
+                android:paddingTop="@dimen/size_10"
+                android:gravity="center">
+
+                <TextView
+                    style="@style/LayoutWrapContent"
+                    android:text="00:00"
+                    android:textColor="@color/white"
+                    android:id="@+id/elapsed_time"
+                    android:textSize="@dimen/standard_text_size"
+                    android:layout_marginStart="@dimen/size_4"/>
+
+                <com.xw.repo.BubbleSeekBar
+                    android:layout_width="match_parent"
+                    android:layout_height="30dp"
+                    android:id="@+id/progress_bar"
+                    android:layout_toEndOf="@id/elapsed_time"
+                    android:layout_toStartOf="@id/song_duration"
+                    app:bsb_track_color="@color/ash"
+                    app:bsb_bubble_color="@color/transparent_gray"
+                    app:bsb_second_track_color="@color/gray"/>
+
+                <TextView
+                    style="@style/LayoutWrapContent"
+                    android:text="10:00"
+                    android:id="@+id/song_duration"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/standard_text_size"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginEnd="@dimen/size_4"/>
+
+            </RelativeLayout>
 
             <include
                 android:id="@+id/song_info_link"

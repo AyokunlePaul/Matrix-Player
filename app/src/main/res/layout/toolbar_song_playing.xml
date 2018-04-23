@@ -10,32 +10,40 @@
     <android.support.v7.widget.Toolbar
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white">
+        android:background="@color/white"
+        android:padding="0dp">
 
-        <LinearLayout
+        <RelativeLayout
             android:orientation="horizontal"
             style="@style/LayoutMatchParent"
             android:minHeight="?attr/actionBarSize"
             android:gravity="center_vertical">
 
             <ImageView
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="match_parent"
+                android:layout_width="@dimen/size_50"
+                android:layout_height="@dimen/size_50"
                 android:src="@drawable/ic_arrow_back"
-                android:scaleType="centerInside"
+                android:scaleType="fitStart"
+                android:scaleY=".6"
+                android:scaleX=".6"
+                android:layout_centerVertical="true"
+                android:id="@+id/go_back"
+                android:layout_alignParentStart="true"
+                android:background="@drawable/icons_state_background"
                 android:onClick="@{ToolbarClickListener::onBackPressed}"/>
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="9"
                 android:padding="@dimen/standard_padding"
                 android:text="Playing"
+                android:layout_centerVertical="true"
+                android:layout_toEndOf="@id/go_back"
                 android:textStyle="bold"
+                android:textColor="@color/colorPrimary"
                 android:textSize="@dimen/large_text_size"/>
 
-        </LinearLayout>
+        </RelativeLayout>
 
     </android.support.v7.widget.Toolbar>
 

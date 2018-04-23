@@ -20,13 +20,31 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:id="@+id/song_list"
-                app:fastScrollEnabled="true"
-                app:fastScrollHorizontalThumbDrawable="@drawable/thumb_state_drawable"
-                app:fastScrollHorizontalTrackDrawable="@drawable/line_state_drawable"
-                app:fastScrollVerticalThumbDrawable="@drawable/thumb_state_drawable"
-                app:fastScrollVerticalTrackDrawable="@drawable/line_state_drawable"/>
+                android:visibility="visible" />
 
         </LinearLayout>
+
+        <RelativeLayout
+            style="@style/LayoutMatchParent"
+            android:visibility="gone"
+            android:id="@+id/no_song_found_layout">
+
+            <ImageView
+                style="@style/LayoutWrapContent"
+                android:src="@drawable/heart_broken"
+                android:layout_centerInParent="true"
+                android:id="@+id/heart_broken"/>
+
+            <TextView
+                style="@style/LayoutWrapHeight"
+                android:padding="@dimen/standard_padding"
+                android:layout_below="@id/heart_broken"
+                android:text="@string/no_music_file"
+                android:gravity="center"
+                android:textColor="@color/black"
+                android:textSize="@dimen/large_text_size"/>
+
+        </RelativeLayout>
 
         <include
             layout="@layout/song_playing_layout"

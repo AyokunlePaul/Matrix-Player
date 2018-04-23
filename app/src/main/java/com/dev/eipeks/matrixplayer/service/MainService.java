@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.MediaStore;
@@ -21,11 +22,11 @@ import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import javax.inject.Inject;
-
-import io.reactivex.observers.DisposableObserver;
 
 
 /**
@@ -38,15 +39,19 @@ public class MainService extends Service {
 
     private int currentSongPosition = 0;
 
-    public List<SongModel> songs = new ArrayList<>();
+    private List<SongModel> songs = new ArrayList<>();
 
-    public MediaPlayer mediaPlayer;
+    private MediaPlayer mediaPlayer;
 
     private MainVM.OnSongPlayedListener onSongPlayedListener;
     private MainVM.OnSongPausedListener onSongPausedListener;
     private MainVM.OnSongStoppedListener onSongStoppedListener;
 
     private boolean needsToSeek = false;
+    private int seekToValue = 0;
+
+    private Handler handler;
+    private Runnable runnable;
 
     @Inject
     MainVM mainVM;
@@ -59,7 +64,7 @@ public class MainService extends Service {
 
         initializePlayer();
 
-//        mediaPlayer.getCurrentPosition();
+        startTaskRepetition();
 
         Log.i("Song List size", String.valueOf(songs.size()));
 
@@ -82,6 +87,8 @@ public class MainService extends Service {
         mediaPlayer.stop();
         mediaPlayer.release();
 
+        stopTaskRepetition();
+
         return true;
     }
 
@@ -93,12 +100,12 @@ public class MainService extends Service {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 if (needsToSeek){
-                    mp.seekTo((int) mainVM.getLastSongPlayedDuration());
+                    mp.seekTo(seekToValue);
                     needsToSeek = false;
                     return;
                 }
                 mp.start();
-                mainVM.setLastSongPlayedDuration(0);
+                mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
             }
         });
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -122,28 +129,31 @@ public class MainService extends Service {
             @Override
             public void onSeekComplete(MediaPlayer mp) {
                 mp.start();
-                mainVM.setLastSongPlayedDuration(0);
+                onSongPlayedListener.onSongPlayed();
             }
         });
     }
 
-    public void play(int position, long initialDuration){
-        this.currentSongPosition = position;
-        mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+    public void play(SongModel model, long initialDuration, AppState.CURRENT_VIEW_STATE currentViewState){
+        if (currentViewState != null){
+            mainVM.setCurrentViewState(currentViewState);
+        }
+        currentSongPosition = songs.indexOf(model);
         mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
-        playSong(initialDuration);
+        playSong(initialDuration, model);
     }
 
-    private void playSong(long initialDuration){
+    private void playSong(long initialDuration, SongModel model){
         needsToSeek = (initialDuration != 0);
+        if (needsToSeek){
+            seekToValue = (int)initialDuration;
+        }
         mediaPlayer.reset();
 
-        SongModel currentSong = songs.get(currentSongPosition);
-
         mainVM.setLastSongPositionPlayed(currentSongPosition);
-        mainVM.setLastSongPlayed(currentSong);
+        mainVM.setLastSongPlayed(model);
 
-        long _id = currentSong._id;
+        long _id = model._id;
 
         Uri songUri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, _id);
 
@@ -154,6 +164,7 @@ public class MainService extends Service {
             Log.e("SOURCE", e.getLocalizedMessage());
             e.printStackTrace();
         }
+        mainVM.setLastSongPlayedDuration(initialDuration);
         onSongPlayedListener.onSongPlayed();
         mediaPlayer.prepareAsync();
     }
@@ -162,24 +173,50 @@ public class MainService extends Service {
         Log.d("NEXT", "Playing next song");
 
         currentSongPosition++;
+
+        SongModel model;
+
         if (currentSongPosition >= songs.size()){
             currentSongPosition = 0;
-            playSong(0);
+        }
+
+        if (mainVM.getShuffleState()){
+            Collections.shuffle(songs, new Random(System.currentTimeMillis()));
+            model = songs.get(currentSongPosition);
+            playSong(0, model);
             return;
         }
 
-        playSong(0);
+        Collections.sort(songs);
+
+        playSong(0, songs.get(currentSongPosition));
     }
 
     public void playPrevious(){
         Log.d("PREVIOUS", "Playing previous song");
         currentSongPosition--;
-        if (currentSongPosition <= 0){
+
+        SongModel model;
+
+        if (currentSongPosition < 0){
             currentSongPosition = songs.size() - 1;
-            playSong(0);
+        }
+
+        if (mainVM.getShuffleState()){
+            Collections.shuffle(songs, new Random(System.currentTimeMillis()));
+            model = songs.get(currentSongPosition);
+            playSong(0, model);
             return;
         }
-        playSong(0);
+
+        Collections.sort(songs);
+
+        playSong(0, songs.get(currentSongPosition));
+    }
+
+    public void seekTo(int seekToValue){
+        mediaPlayer.seekTo(seekToValue);
+        mainVM.setLastSongPlayedDuration(seekToValue);
     }
 
     public void pausePlaying(){
@@ -195,8 +232,28 @@ public class MainService extends Service {
         this.onSongPausedListener = onSongPausedListener;
         this.onSongPlayedListener = onSongPlayedListener;
         this.onSongStoppedListener = onSongStoppedListener;
+    }
 
-//        Log.i("Size of song passed", String.valueOf(model.size()));
+    private void startTaskRepetition(){
+        handler = new Handler();
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+
+                if (mediaPlayer != null){
+                    if (mediaPlayer.isPlaying()){
+                        Log.d("Runnable", "Last played position is caching " + mediaPlayer.getCurrentPosition());
+                        mainVM.setLastSongPlayedDuration(mediaPlayer.getCurrentPosition());
+                    }
+                }
+                handler.postDelayed(this, 1000);
+            }
+        };
+        handler.post(runnable);
+    }
+
+    private void stopTaskRepetition(){
+        handler.removeCallbacks(runnable);
     }
 
     public class MainBinder extends Binder {

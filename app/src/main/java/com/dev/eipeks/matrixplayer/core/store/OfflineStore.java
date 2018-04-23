@@ -8,6 +8,9 @@ import com.dev.eipeks.matrixplayer.global.AppState;
 import com.dev.eipeks.matrixplayer.global.Constants;
 import com.google.gson.Gson;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.inject.Inject;
 
 /**
@@ -21,10 +24,13 @@ public class OfflineStore {
     private SharedPreferences preferences;
     private SharedPreferences.Editor editor;
 
+    private List<SongModel> favorites;
+
     @Inject
     public OfflineStore(Context context){
         this.context = context;
         initSharedPreferences();
+        favorites = new ArrayList<>();
     }
 
     private void initSharedPreferences(){
@@ -82,6 +88,21 @@ public class OfflineStore {
 
     public Long getLastSongDuration(){
         return preferences.getLong(Constants.CONSTANT_LAST_SONG_DURATION, 0);
+    }
+
+    public void setShuffleState(boolean shuffleState){
+        editor.putBoolean(Constants.CONSTANT_SHUFFLE_STATE, shuffleState);
+        editor.apply();
+    }
+
+    public boolean getShuffleState(){
+        return preferences.getBoolean(Constants.CONSTANT_SHUFFLE_STATE, false);
+    }
+
+    private void getFavorites(){}
+
+    public void addToFavourites(){
+
     }
 
 }
