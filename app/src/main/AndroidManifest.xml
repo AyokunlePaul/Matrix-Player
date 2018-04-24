@@ -15,11 +15,13 @@
         android:theme="@style/Lecteur.NoActionBar" >
         <service android:name="com.dev.eipeks.matrixplayer.service.MainService" />
         <activity android:name="com.dev.eipeks.matrixplayer.screen.activity.MainActivity"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait">
 
         </activity>
         <activity android:name="com.dev.eipeks.matrixplayer.screen.activity.MainCarousel"
-            android:noHistory="true">
+            android:noHistory="true"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
