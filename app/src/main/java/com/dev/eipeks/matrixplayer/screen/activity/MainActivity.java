@@ -5,7 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.databinding.DataBindingUtil;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
@@ -31,6 +36,7 @@ import com.dev.eipeks.matrixplayer.databinding.SongPlayingLayoutBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarMainBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarSongPlayingBinding;
 import com.dev.eipeks.matrixplayer.global.AppState;
+import com.dev.eipeks.matrixplayer.global.Utils;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 import com.dev.eipeks.matrixplayer.service.MainService;
 import com.xw.repo.BubbleSeekBar;
@@ -90,7 +96,7 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             if (dy > 0){
                 snackbar.dismiss();
             } else if (dy < 0){
-                if (snackbarBinding.getRoot().getVisibility() == View.VISIBLE){
+                if (mainVM.getCurrentViewState() != null){
                     snackbar.show();
                 }
             }
@@ -134,6 +140,11 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
          */
         component = MainApplication.get(this).getComponent();
         component.inject(this);
+
+        //Shuffle the shuffledList
+        if (mainVM.getShuffleState()){
+            mainVM.startShuffle();
+        }
 
         /*
          * Initialize binding
@@ -195,6 +206,7 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         if (mainVM.getCurrentViewState().toString().equals(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT.toString())){
             mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT);
             snackbarBinding.setSong(mainVM.getLastSongPlayed());
+            snackbarBinding.getRoot().setVisibility(View.VISIBLE);
             setCorrectLayout();
             return;
         }
@@ -218,6 +230,10 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     protected void onResume() {
         Log.d("Lifecycle", "onResume");
         super.onResume();
+        MainVM.activityIsVisible = true;
+        if (mainService != null){
+            mainService.dismissNotification();
+        }
         if (mainVM.getLastSongPlayed() != null){
             currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
         } else {
@@ -229,6 +245,10 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     @Override
     protected void onPause() {
         Log.d("Lifecycle", "onPause");
+        if (MainVM.mediaPlayerIsCurrentlyPlaying){
+            mainService.showNotification();
+        }
+        MainVM.activityIsVisible = false;
         super.onPause();
     }
 
@@ -263,6 +283,11 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         snackbarBinding.setControllersListener(new ControllersClickListener());
 
         snackbarLayout.addView(snackbarBinding.getRoot(), 0);
+        if (mainVM.getCurrentViewState() != null){
+            if (mainVM.getCurrentViewState().toString().equals(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT.toString())){
+                snackbarBinding.getRoot().setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void initBinding(){
@@ -310,8 +335,11 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             public void onSongPlayed() {
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
                 snackbarBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
+                snackbarBinding.setSong(mainVM.getLastSongPlayed());
+//                songPlayingLayoutBinding.backgroundImage.setImageBitmap(Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath) != null ?
+//                        Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath): BitmapFactory.decodeResource(getResources(), R.drawable.song_playing_background));
                 if (mainVM.getCurrentViewState().toString().equals(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT.toString())){
-                    snackbarBinding.setSong(mainVM.getLastSongPlayed());
+                    snackbarBinding.getRoot().setVisibility(View.VISIBLE);
                 }
                 setCorrectLayout();
                 createObservableAndObserver(mainVM.getLastSongPlayedDuration(), mainVM.getLastSongPlayed().duration);
@@ -342,6 +370,7 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             @Override
             public void onShuffleSelected(boolean shuffleState) {
                 if (shuffleState){
+                    mainVM.startShuffle();
                     binding.songPlayingLink.controllers.shuffleSongsButton.setSelected(true);
                 } else {
                     binding.songPlayingLink.controllers.shuffleSongsButton.setSelected(false);
@@ -379,6 +408,29 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
             snackbarBinding.getRoot().setVisibility(View.GONE);
             binding.songPlayingLink.getRoot().setVisibility(View.VISIBLE);
             binding.songPlayingLink.progressBar.setProgress(currentProgress);
+
+            long elapsedTimeInSeconds = mainVM.getLastSongPlayedDuration() / 1000;
+            long totalTimeInSeconds = mainVM.getLastSongPlayed().duration / 1000;
+
+            long hoursElapsed = elapsedTimeInSeconds / 3600;
+            long minutesElapsed = elapsedTimeInSeconds / 60;
+            long secondsElapsed = elapsedTimeInSeconds % 60;
+
+            String elapsedTimeFormat = hoursElapsed > 0 ?
+                    String.format(Locale.ENGLISH, "%02d:%02d%02d", hoursElapsed, minutesElapsed, secondsElapsed) :
+                    String.format(Locale.ENGLISH, "%02d:%02d", minutesElapsed, secondsElapsed);
+
+            binding.songPlayingLink.elapsedTime.setText(elapsedTimeFormat);
+
+            long hoursInLastPlayedSong = totalTimeInSeconds / 3600;
+            long minutesInLastPlayedSong = totalTimeInSeconds / 60;
+            long secondsInLastPlayedSong = totalTimeInSeconds % 60;
+
+            String totalTime = hoursInLastPlayedSong > 0 ?
+                    String.format(Locale.ENGLISH, "%02d:%02d%02d", hoursInLastPlayedSong, minutesInLastPlayedSong, secondsInLastPlayedSong) :
+                    String.format(Locale.ENGLISH, "%02d:%02d", minutesInLastPlayedSong, secondsInLastPlayedSong);
+
+            binding.songPlayingLink.songDuration.setText(totalTime);
 
             if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
                 controllersBinding.playPauseButton.setImageResource(R.drawable.ic_pause);
@@ -477,7 +529,9 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         }
 
         public void onPlayPreviousIconClicked(View view){
-            stopProgressCount();
+            if (observer != null && progressObservable != null){
+                stopProgressCount();
+            }
             mainService.playPrevious();
         }
 
@@ -494,7 +548,9 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         }
 
         public void onPlayNextIconClicked(View view){
-            stopProgressCount();
+            if (observer != null && progressObservable != null){
+                stopProgressCount();
+            }
             mainService.playNext();
         }
 
@@ -509,24 +565,34 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         }
 
         public void onMainLayoutClicked(View view){
-            mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
 
-            if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
-                stopProgressCount();
-                createObservableAndObserver(mainVM.getLastSongPlayedDuration(), mainVM.getLastSongPlayed().duration);
-                startProgressCount();
-            } else {
-                currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
-                binding.songPlayingLink.progressBar.setProgress(currentProgress);
-            }
-            setCorrectLayout();
+                    if (mainVM.getAppState().toString().equals(AppState.APP_STATE.PLAYING.toString())){
+                        stopProgressCount();
+                        createObservableAndObserver(mainVM.getLastSongPlayedDuration(), mainVM.getLastSongPlayed().duration);
+                        startProgressCount();
+                    } else {
+                        currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
+                        binding.songPlayingLink.progressBar.setProgress(currentProgress);
+                    }
+                    setCorrectLayout();
+                }
+            }, 500);
         }
     }
 
     public class ToolbarClickListener{
         public void onBackPressed(View view){
-            mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT);
-            setCorrectLayout();
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mainVM.setCurrentViewState(AppState.CURRENT_VIEW_STATE.MAIN_DISPLAY_LAYOUT);
+                    setCorrectLayout();
+                }
+            }, 500);
         }
     }
 

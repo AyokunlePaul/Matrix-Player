@@ -14,7 +14,8 @@
         android:supportsRtl="true"
         android:theme="@style/Lecteur.NoActionBar" >
         <service android:name="com.dev.eipeks.matrixplayer.service.MainService" />
-        <activity android:name="com.dev.eipeks.matrixplayer.screen.activity.MainActivity" >
+        <activity android:name="com.dev.eipeks.matrixplayer.screen.activity.MainActivity"
+            android:launchMode="singleTask">
 
         </activity>
         <activity android:name="com.dev.eipeks.matrixplayer.screen.activity.MainCarousel"
@@ -24,5 +25,8 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <receiver android:name=".service.MainService$PlayPauseActionReceiver"/>
+        <receiver android:name=".service.MainService$PlayNextActionReceiver"/>
+        <receiver android:name=".service.MainService$PlayPreviousActionReceiver"/>
     </application>
 </manifest>
