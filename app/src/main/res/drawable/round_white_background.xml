@@ -3,9 +3,9 @@
 
     <item>
         <shape>
-            <solid android:color="@color/colorAccent"/>
+            <solid android:color="@color/white"/>
             <corners android:radius="@dimen/standard_radius"/>
-            <stroke android:color="@color/colorAccent"
+            <stroke android:color="@color/white"
                 android:width="@dimen/standard_stroke_width"/>
         </shape>
     </item>
