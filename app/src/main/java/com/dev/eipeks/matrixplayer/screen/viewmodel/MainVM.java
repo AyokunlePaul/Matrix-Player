@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.v4.app.NotificationCompat;
 import android.widget.Toast;
@@ -43,6 +44,7 @@ public class MainVM extends CoreVM {
     private AppState.CURRENT_VIEW_STATE currentViewState;
 
     private SongModel model;
+    public static SongModel songFromIntent;
 
     private List<SongModel> songList = new ArrayList<>();
 
@@ -51,8 +53,6 @@ public class MainVM extends CoreVM {
     private long lastSongPlayedDuration;
 
     private boolean shuffleState;
-
-    private Notification notification;
 
     @Inject
     public MainVM(OfflineStore offlineStore){
@@ -90,6 +90,25 @@ public class MainVM extends CoreVM {
                 return songList;
             }
         });
+    }
+
+    public SongModel getSongInfoFromIntent(ContentResolver resolver, Uri uri){
+        Cursor cursor = resolver.query(uri, null, null,null, null);
+        if (cursor != null && cursor.moveToFirst()){
+            long _id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
+            String songName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
+            String songArtist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
+            String songPath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
+            long songDuration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+
+            cursor.close();
+
+            songFromIntent = new SongModel(songName, songArtist, _id, songPath, songDuration);
+
+            return songFromIntent;
+        }
+
+        return null;
     }
 
     public List<SongModel> getSongs(){

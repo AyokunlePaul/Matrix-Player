@@ -20,6 +20,7 @@ public class MainApplication extends Application {
     private static Context context;
 
     public static boolean serviceBoundToActivity = false;
+    public static boolean shouldPlaySongFromIntent = false;
 
     @Override
     public void onCreate() {

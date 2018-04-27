@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.databinding.DataBindingUtil;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -31,10 +32,13 @@ import com.dev.eipeks.matrixplayer.databinding.SongPlayingLayoutBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarMainBinding;
 import com.dev.eipeks.matrixplayer.databinding.ToolbarSongPlayingBinding;
 import com.dev.eipeks.matrixplayer.global.AppState;
+import com.dev.eipeks.matrixplayer.global.Constants;
+import com.dev.eipeks.matrixplayer.global.Utils;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 import com.dev.eipeks.matrixplayer.service.MainService;
 import com.xw.repo.BubbleSeekBar;
 
+import java.io.File;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -114,7 +118,7 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
         public void onServiceDisconnected(ComponentName name) {
             MainApplication.serviceBoundToActivity = false;
         }
-    };;
+    };
 
     @Inject
     MainVM mainVM;
@@ -134,7 +138,6 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
          */
         component = MainApplication.get(this).getComponent();
         component.inject(this);
-
         /*
          * Initialize binding
          */
@@ -218,6 +221,12 @@ public class MainActivity extends CoreActivity implements SongListAdapter.PlaySo
     protected void onResume() {
         Log.d("Lifecycle", "onResume");
         super.onResume();
+        if (MainApplication.shouldPlaySongFromIntent){
+            String id = getIntent().getStringExtra(Constants.CONSTANT_SONG_FROM_INTENT);
+            mainVM.getSongInfoFromIntent(getContentResolver(), Uri.parse(id));
+            return;
+        }
+
         if (mainVM.getLastSongPlayed() != null){
             currentProgress = (mainVM.getLastSongPlayedDuration() * 100) / mainVM.getLastSongPlayed().duration;
         } else {

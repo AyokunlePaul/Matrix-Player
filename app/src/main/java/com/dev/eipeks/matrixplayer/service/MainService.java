@@ -70,6 +70,9 @@ public class MainService extends Service {
 
         super.onCreate();
 
+        if (MainApplication.shouldPlaySongFromIntent){
+            play(MainVM.songFromIntent, 0, AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
+        }
     }
 
     @Nullable
