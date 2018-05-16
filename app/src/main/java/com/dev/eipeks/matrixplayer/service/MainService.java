@@ -1,39 +1,57 @@
 package com.dev.eipeks.matrixplayer.service;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ContentUris;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 
 import com.dev.eipeks.matrixplayer.MainApplication;
+import com.dev.eipeks.matrixplayer.R;
 import com.dev.eipeks.matrixplayer.core.dagger.component.MainComponent;
 import com.dev.eipeks.matrixplayer.core.model.SongModel;
 import com.dev.eipeks.matrixplayer.global.AppState;
+import com.dev.eipeks.matrixplayer.global.Constants;
+import com.dev.eipeks.matrixplayer.global.Utils;
+import com.dev.eipeks.matrixplayer.screen.activity.MainActivity;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 
 import javax.inject.Inject;
+
+import static com.dev.eipeks.matrixplayer.global.Constants.NOTIFICATION_CHANNEL_ID;
+import static com.dev.eipeks.matrixplayer.global.Constants.NOTIFICATION_ID;
 
 
 /**
  * Created by eipeks on 3/19/18.
  */
 
-public class MainService extends Service {
+public class MainService extends Service{
 
     private MainComponent component;
 
@@ -42,16 +60,31 @@ public class MainService extends Service {
     private List<SongModel> songs = new ArrayList<>();
 
     private MediaPlayer mediaPlayer;
+    private AudioManager audioManager;
 
     private MainVM.OnSongPlayedListener onSongPlayedListener;
     private MainVM.OnSongPausedListener onSongPausedListener;
     private MainVM.OnSongStoppedListener onSongStoppedListener;
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
 
     private boolean needsToSeek = false;
     private int seekToValue = 0;
 
     private Handler handler;
     private Runnable runnable;
+
+    private MediaSessionCompat session;
+    private NotificationManager manager;
+    private NotificationCompat.Builder builder;
+
+    private PendingIntent nextPendingIntent;
+    private static PendingIntent pausePlayPendingIntent;
+    private PendingIntent previousPendingIntent;
+
+    private static MainService service;
+    private static MainVM staticMainVM;
+    private static ArrayList<NotificationCompat.Action> actions = new ArrayList<>();
 
     @Inject
     MainVM mainVM;
@@ -62,17 +95,50 @@ public class MainService extends Service {
         component = MainApplication.get(this).getComponent();
         component.inject(this);
 
+        session = new MediaSessionCompat(this, "Main Service");
+        manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange){
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        mediaPlayer.start();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        mediaPlayer.pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        mediaPlayer.pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        mediaPlayer.setVolume(0.2f, 0.2f);
+                        break;
+                }
+            }
+        };
+
+        MainVM.pausePlayIcon = R.drawable.ic_pause;
+        MainVM.isOnGoing = false;
+
         initializePlayer();
+
+        initializePendingIntents();
 
         startTaskRepetition();
 
         Log.i("Song List size", String.valueOf(songs.size()));
 
-        super.onCreate();
+        if (service == null){
+            staticMainVM = mainVM;
+            service = this;
+        }
 
         if (MainApplication.shouldPlaySongFromIntent){
             play(MainVM.songFromIntent, 0, AppState.CURRENT_VIEW_STATE.SONG_PLAYING_LAYOUT);
         }
+        super.onCreate();
     }
 
     @Nullable
@@ -80,6 +146,11 @@ public class MainService extends Service {
     public IBinder onBind(Intent intent) {
         Log.i("Service", "Activity bounded");
         songs = mainVM.getSongs();
+        if (service == null){
+            staticMainVM = mainVM;
+            service = this;
+        }
+        dismissNotification();
         return new MainBinder();
     }
 
@@ -95,6 +166,33 @@ public class MainService extends Service {
         return true;
     }
 
+    private void initializePendingIntents(){
+        initializePlayPreviousIntent();
+        initializePlayNextIntent();
+        initializePlayPauseIntent();
+    }
+
+    private void initializePlayPreviousIntent(){
+        Intent playPrevious = new Intent(this, PlayPreviousActionReceiver.class);
+        playPrevious.putExtra("TYPE", 2);
+        previousPendingIntent = PendingIntent.getBroadcast(this, Constants.PAUSE_PLAY_REQUEST_CODE,
+                playPrevious, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    private void initializePlayNextIntent(){
+        Intent playNext = new Intent(this, PlayNextActionReceiver.class);
+        playNext.putExtra("TYPE", 1);
+        nextPendingIntent = PendingIntent.getBroadcast(this, Constants.PAUSE_PLAY_REQUEST_CODE,
+                playNext, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    private void initializePlayPauseIntent(){
+        Intent pausePlayIntent = new Intent(this, PlayPauseActionReceiver.class);
+        pausePlayIntent.putExtra("TYPE", 0);
+        pausePlayPendingIntent = PendingIntent.getBroadcast(this, Constants.PAUSE_PLAY_REQUEST_CODE,
+                pausePlayIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
     private void initializePlayer(){
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK);
@@ -107,14 +205,30 @@ public class MainService extends Service {
                     needsToSeek = false;
                     return;
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                    AudioFocusRequest.Builder builder = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN);
+                    builder.setAudioAttributes(new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+                    builder.setWillPauseWhenDucked(true);
+                    builder.setOnAudioFocusChangeListener(audioFocusChangeListener);
+                    builder.setAcceptsDelayedFocusGain(true);
+                    audioManager.requestAudioFocus(builder.build());
+                } else {
+                    audioManager.requestAudioFocus(audioFocusChangeListener,
+                            AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                }
                 mp.start();
                 mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
+                if (!MainVM.activityIsVisible){
+                    showNotification();
+                }
+                onSongPlayedListener.onSongPlayed();
             }
         });
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
                 mp.reset();
+                audioManager.abandonAudioFocus(audioFocusChangeListener);
                 playNext();
                 Log.i("OnCompletion", "OnPlaybackCompleted Listener");
             }
@@ -125,13 +239,19 @@ public class MainService extends Service {
                 Log.e("onError", String.valueOf(what));
                 mainVM.setLastSongPlayedDuration(0);
                 mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
+                MainVM.mediaPlayerIsCurrentlyPlaying = false;
                 return false;
             }
         });
         mediaPlayer.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
             @Override
             public void onSeekComplete(MediaPlayer mp) {
+                audioManager.requestAudioFocus(audioFocusChangeListener,
+                        AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
                 mp.start();
+                if (!MainVM.activityIsVisible){
+                    showNotification();
+                }
                 onSongPlayedListener.onSongPlayed();
             }
         });
@@ -142,7 +262,6 @@ public class MainService extends Service {
             mainVM.setCurrentViewState(currentViewState);
         }
         currentSongPosition = songs.indexOf(model);
-        mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
         playSong(initialDuration, model);
     }
 
@@ -167,54 +286,85 @@ public class MainService extends Service {
             Log.e("SOURCE", e.getLocalizedMessage());
             e.printStackTrace();
         }
+        mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
         mainVM.setLastSongPlayedDuration(initialDuration);
-        onSongPlayedListener.onSongPlayed();
+        MainVM.mediaPlayerIsCurrentlyPlaying = true;
+        MainVM.pausePlayIcon = R.drawable.ic_pause;
+        MainVM.isOnGoing = true;
         mediaPlayer.prepareAsync();
     }
 
     public void playNext(){
         Log.d("NEXT", "Playing next song");
 
-        currentSongPosition++;
+        if (mainVM.getShuffleState()){
+            playNextFromShuffledList();
+            return;
+        }
 
-        SongModel model;
+        playNextFromUnshuffledList();
+    }
+
+    private void playNextFromUnshuffledList(){
+        currentSongPosition = songs.indexOf(mainVM.getLastSongPlayed());
+        currentSongPosition++;
 
         if (currentSongPosition >= songs.size()){
             currentSongPosition = 0;
         }
 
+        playSong(0, songs.get(currentSongPosition));
+    }
+
+    private void playNextFromShuffledList(){
+        currentSongPosition++;
+
+        if (currentSongPosition >= songs.size()){
+            currentSongPosition = 0;
+        }
+
+        SongModel model;
+
+        model = mainVM.getShuffledList().get(currentSongPosition);
+        playSong(0, model);
+
+    }
+
+    public void playPrevious(){
+        if (mediaPlayer.getCurrentPosition() > 4000){
+            playSong(0, mainVM.getLastSongPlayed());
+            return;
+        }
         if (mainVM.getShuffleState()){
-            Collections.shuffle(songs, new Random(System.currentTimeMillis()));
-            model = songs.get(currentSongPosition);
-            playSong(0, model);
+            playPreviousFromShuffledList();
             return;
         }
 
-        Collections.sort(songs);
+        playPreviousFromUnshuffledList();
+    }
+
+    private void playPreviousFromUnshuffledList(){
+        Log.d("PREVIOUS", "Playing previous song");
+
+        currentSongPosition = songs.indexOf(mainVM.getLastSongPlayed());
+        currentSongPosition--;
+
+        if (currentSongPosition < 0){
+            currentSongPosition = songs.size() - 1;
+        }
 
         playSong(0, songs.get(currentSongPosition));
     }
 
-    public void playPrevious(){
-        Log.d("PREVIOUS", "Playing previous song");
-        currentSongPosition--;
-
+    private void playPreviousFromShuffledList(){
         SongModel model;
 
         if (currentSongPosition < 0){
             currentSongPosition = songs.size() - 1;
         }
 
-        if (mainVM.getShuffleState()){
-            Collections.shuffle(songs, new Random(System.currentTimeMillis()));
-            model = songs.get(currentSongPosition);
-            playSong(0, model);
-            return;
-        }
-
-        Collections.sort(songs);
-
-        playSong(0, songs.get(currentSongPosition));
+        model = mainVM.getShuffledList().get(currentSongPosition);
+        playSong(0, model);
     }
 
     public void seekTo(int seekToValue){
@@ -223,6 +373,12 @@ public class MainService extends Service {
     }
 
     public void pausePlaying(){
+        Log.d("ACTIVITY IS VISIBLE", Boolean.toString(MainVM.activityIsVisible));
+        if (!MainVM.activityIsVisible){
+            showNotification();
+        }
+        MainVM.mediaPlayerIsCurrentlyPlaying = false;
+        MainVM.isOnGoing = false;
         mediaPlayer.pause();
         mainVM.setLastSongPlayedDuration(mediaPlayer.getCurrentPosition());
         mainVM.setCurrentAppState(AppState.APP_STATE.NOT_PLAYING);
@@ -237,12 +393,66 @@ public class MainService extends Service {
         this.onSongStoppedListener = onSongStoppedListener;
     }
 
+    public void showNotification(){
+        manager.notify(0, createMediaNotification());
+    }
+
+    public void dismissNotification(){
+        if (manager != null){
+            manager.cancel(0);
+        }
+    }
+
+    private Notification createMediaNotification(){
+        builder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
+
+        builder.setAutoCancel(true);
+        builder.setContentTitle(mainVM.getLastSongPlayed().songArtist);
+        builder.setContentText(mainVM.getLastSongPlayed().songName);
+        builder.setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
+                .setMediaSession(session.getSessionToken())
+                .setShowActionsInCompactView(0, 1, 2));
+        builder.setSmallIcon(R.mipmap.ic_launcher);
+        builder.setPriority(NotificationCompat.PRIORITY_HIGH);
+        builder.setContentIntent(PendingIntent.getActivity(this, 2938,
+                new Intent(this, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
+                PendingIntent.FLAG_CANCEL_CURRENT));
+        builder.setLargeIcon(Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath) != null ?
+                Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath) :
+                BitmapFactory.decodeResource(getResources(), R.drawable.music_playing_default));
+        builder.setOnlyAlertOnce(true);
+        builder.setOngoing(MainVM.isOnGoing);
+        builder.addAction(new NotificationCompat.Action(R.drawable.prev_button_drawable, "Play Previous", previousPendingIntent));
+        builder.addAction(new NotificationCompat.Action(MainVM.pausePlayIcon, "Pause Play", pausePlayPendingIntent));
+        builder.addAction(new NotificationCompat.Action(R.drawable.next_button_drawable, "Play Next", nextPendingIntent));
+
+        actions = builder.mActions;
+
+        Log.d("ACTIONS LIST", Integer.toString(actions.size()));
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "MATRIX_PLAYER_CHANNEL", importance);
+            notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(Color.RED);
+            notificationChannel.enableVibration(false);
+            assert manager != null;
+            builder.setChannelId(NOTIFICATION_CHANNEL_ID);
+            manager.createNotificationChannel(notificationChannel);
+        }
+
+        return builder.build();
+    }
+
+    private static MainService get(){
+        return service;
+    }
+
     private void startTaskRepetition(){
         handler = new Handler();
         runnable = new Runnable() {
             @Override
             public void run() {
-
                 if (mediaPlayer != null){
                     if (mediaPlayer.isPlaying()){
                         Log.d("Runnable", "Last played position is caching " + mediaPlayer.getCurrentPosition());
@@ -262,6 +472,60 @@ public class MainService extends Service {
     public class MainBinder extends Binder {
         public MainService getService(){
             return MainService.this;
+        }
+    }
+
+    public static class PlayPauseActionReceiver extends BroadcastReceiver{
+
+        public PlayPauseActionReceiver(){}
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int intentName = intent.getIntExtra("TYPE", 0);
+
+            Log.d("TYPE VALUE ========== ", Integer.toString(intentName));
+
+            if (intentName == 0){
+                if (MainService.get().mediaPlayer.isPlaying()){
+                    MainVM.pausePlayIcon = R.drawable.ic_play;
+                    MainService.get().pausePlaying();
+                    return;
+                }
+                MainVM.pausePlayIcon = R.drawable.ic_pause;
+                MainService.get().playSong(staticMainVM.getLastSongPlayedDuration(), staticMainVM.getLastSongPlayed());
+            }
+        }
+    }
+
+    public static class PlayNextActionReceiver extends BroadcastReceiver{
+
+        public PlayNextActionReceiver(){}
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int intentName = intent.getIntExtra("TYPE", 0);
+
+            Log.d("TYPE VALUE ========== ", Integer.toString(intentName));
+
+            if (intentName == 1){
+                MainService.get().playNext();
+            }
+        }
+    }
+
+    public static class PlayPreviousActionReceiver extends BroadcastReceiver{
+
+        public PlayPreviousActionReceiver(){}
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int intentName = intent.getIntExtra("TYPE", 0);
+
+            Log.d("TYPE VALUE ========== ", Integer.toString(intentName));
+
+            if (intentName == 2){
+                MainService.get().playPrevious();
+            }
         }
     }
 }

@@ -116,12 +116,17 @@ public class MainCarousel extends CoreActivity {
                 .subscribe(new DisposableSingleObserver<List<SongModel>>() {
             @Override
             public void onSuccess(List<SongModel> songModels) {
+              
                 Intent intent = new Intent(MainCarousel.this, MainActivity.class);
                 if (!id.isEmpty()){
                     MainApplication.shouldPlaySongFromIntent = true;
                     intent.putExtra(Constants.CONSTANT_SONG_FROM_INTENT, id);
                 }
                 startActivity(intent);
+
+                mainVM.startShuffle();
+                startActivity(new Intent(MainCarousel.this, MainActivity.class));
+
                 finish();
             }
 

@@ -47,12 +47,19 @@ public class MainVM extends CoreVM {
     public static SongModel songFromIntent;
 
     private List<SongModel> songList = new ArrayList<>();
+    private List<SongModel> shuffleList = new ArrayList<>();
 
     private int lastSongPosition;
 
     private long lastSongPlayedDuration;
 
     private boolean shuffleState;
+  
+    public static boolean activityIsVisible;
+    public static boolean mediaPlayerIsCurrentlyPlaying;
+    public static int pausePlayIcon;
+    public static boolean isOnGoing;
+
 
     @Inject
     public MainVM(OfflineStore offlineStore){
@@ -109,6 +116,20 @@ public class MainVM extends CoreVM {
         }
 
         return null;
+    public void fillShuffledList(){
+        shuffleList.addAll(songList);
+    }
+
+    public void startShuffle(){
+        if (shuffleList.size() == 0){
+            fillShuffledList();
+        }
+        Collections.shuffle(shuffleList, new Random(System.currentTimeMillis()));
+    }
+
+    public List<SongModel> getShuffledList(){
+        fillShuffledList();
+        return shuffleList;
     }
 
     public List<SongModel> getSongs(){

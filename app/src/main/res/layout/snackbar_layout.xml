@@ -10,14 +10,16 @@
         <variable
             name="controllersListener"
             type="com.dev.eipeks.matrixplayer.screen.activity.MainActivity.ControllersClickListener"/>
+        <variable
+            name="state"
+            type="com.dev.eipeks.matrixplayer.global.AppState.CURRENT_VIEW_STATE"/>
     </data>
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="@dimen/size_50"
         android:background="@drawable/snackbar_state_background"
-        android:onClick="@{controllersListener::onMainLayoutClicked}"
-        android:visibility="@{song != null ? View.VISIBLE : View.GONE}">
+        android:onClick="@{controllersListener::onMainLayoutClicked}">
 
         <TextView
             style="@style/LayoutWrapHeight"
@@ -35,8 +37,7 @@
             android:layout_height="@dimen/size_50"
             android:src="@drawable/ic_play"
             android:id="@+id/play_pause_button"
-            android:scaleY=".7"
-            android:scaleX=".7"
+            android:scaleType="centerInside"
             android:background="@drawable/icons_state_background"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
