@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -19,6 +20,7 @@ import com.dev.eipeks.matrixplayer.core.model.SongModel;
 import com.dev.eipeks.matrixplayer.core.view.CoreActivity;
 import com.dev.eipeks.matrixplayer.databinding.MainCarouselBinding;
 import com.dev.eipeks.matrixplayer.databinding.MainLayoutBinding;
+import com.dev.eipeks.matrixplayer.global.Constants;
 import com.dev.eipeks.matrixplayer.screen.viewmodel.MainVM;
 
 import java.util.List;
@@ -41,6 +43,8 @@ public class MainCarousel extends CoreActivity {
 
     private MainComponent component;
 
+    String id = "";
+
     @Inject
     MainVM mainVM;
 
@@ -52,6 +56,10 @@ public class MainCarousel extends CoreActivity {
         super.onCreate(savedInstanceState);
 
         binding = DataBindingUtil.setContentView(this, R.layout.main_carousel);
+
+        if (getIntent() != null && getIntent().resolveType(this) != null){
+            id = getIntent().getDataString();
+        }
 
         component = MainApplication.get(this).getComponent();
         component.inject(this);
@@ -108,8 +116,17 @@ public class MainCarousel extends CoreActivity {
                 .subscribe(new DisposableSingleObserver<List<SongModel>>() {
             @Override
             public void onSuccess(List<SongModel> songModels) {
+              
+                Intent intent = new Intent(MainCarousel.this, MainActivity.class);
+                if (!id.isEmpty()){
+                    MainApplication.shouldPlaySongFromIntent = true;
+                    intent.putExtra(Constants.CONSTANT_SONG_FROM_INTENT, id);
+                }
+                startActivity(intent);
+
                 mainVM.startShuffle();
                 startActivity(new Intent(MainCarousel.this, MainActivity.class));
+
                 finish();
             }
 

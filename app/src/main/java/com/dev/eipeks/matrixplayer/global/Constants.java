@@ -13,6 +13,8 @@ public interface Constants {
     String CONSTANT_FAVORITE_SONGS = "Favorites";
     String CONSTANT_EMPTY_STRINGS = "";
     String CONSTANT_SHUFFLE_STATE = "";
+    String CONSTANT_SONG_FROM_INTENT = "Song from Intent";
+  
     String NOTIFICATION_CHANNEL_ID = "1283892";
     int NOTIFICATION_ID = 9839;
 
