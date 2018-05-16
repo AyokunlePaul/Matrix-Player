@@ -11,10 +11,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -48,7 +51,7 @@ import static com.dev.eipeks.matrixplayer.global.Constants.NOTIFICATION_ID;
  * Created by eipeks on 3/19/18.
  */
 
-public class MainService extends Service {
+public class MainService extends Service{
 
     private MainComponent component;
 
@@ -57,10 +60,13 @@ public class MainService extends Service {
     private List<SongModel> songs = new ArrayList<>();
 
     private MediaPlayer mediaPlayer;
+    private AudioManager audioManager;
 
     private MainVM.OnSongPlayedListener onSongPlayedListener;
     private MainVM.OnSongPausedListener onSongPausedListener;
     private MainVM.OnSongStoppedListener onSongStoppedListener;
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
 
     private boolean needsToSeek = false;
     private int seekToValue = 0;
@@ -91,6 +97,27 @@ public class MainService extends Service {
 
         session = new MediaSessionCompat(this, "Main Service");
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                switch (focusChange){
+                    case AudioManager.AUDIOFOCUS_GAIN:
+                        mediaPlayer.start();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                        mediaPlayer.pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS:
+                        mediaPlayer.pause();
+                        break;
+                    case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                        mediaPlayer.setVolume(0.2f, 0.2f);
+                        break;
+                }
+            }
+        };
 
         MainVM.pausePlayIcon = R.drawable.ic_pause;
         MainVM.isOnGoing = false;
@@ -175,6 +202,17 @@ public class MainService extends Service {
                     needsToSeek = false;
                     return;
                 }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                    AudioFocusRequest.Builder builder = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN);
+                    builder.setAudioAttributes(new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+                    builder.setWillPauseWhenDucked(true);
+                    builder.setOnAudioFocusChangeListener(audioFocusChangeListener);
+                    builder.setAcceptsDelayedFocusGain(true);
+                    audioManager.requestAudioFocus(builder.build());
+                } else {
+                    audioManager.requestAudioFocus(audioFocusChangeListener,
+                            AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+                }
                 mp.start();
                 mainVM.setCurrentAppState(AppState.APP_STATE.PLAYING);
                 if (!MainVM.activityIsVisible){
@@ -187,6 +225,7 @@ public class MainService extends Service {
             @Override
             public void onCompletion(MediaPlayer mp) {
                 mp.reset();
+                audioManager.abandonAudioFocus(audioFocusChangeListener);
                 playNext();
                 Log.i("OnCompletion", "OnPlaybackCompleted Listener");
             }
@@ -204,6 +243,8 @@ public class MainService extends Service {
         mediaPlayer.setOnSeekCompleteListener(new MediaPlayer.OnSeekCompleteListener() {
             @Override
             public void onSeekComplete(MediaPlayer mp) {
+                audioManager.requestAudioFocus(audioFocusChangeListener,
+                        AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
                 mp.start();
                 if (!MainVM.activityIsVisible){
                     showNotification();
