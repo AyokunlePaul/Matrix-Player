@@ -1,11 +1,14 @@
 package com.dev.eipeks.matrixplayer.global;
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.provider.MediaStore;
+
+import com.dev.eipeks.matrixplayer.R;
 
 import java.io.ByteArrayOutputStream;
 
@@ -15,7 +18,7 @@ import java.io.ByteArrayOutputStream;
 
 public class Utils {
 
-    public static Bitmap getSongBitmap(String path){
+    public static Bitmap getSongBitmap(String path) {
         Bitmap bitmap = null;
 
         MediaMetadataRetriever retriever = new MediaMetadataRetriever();
@@ -23,15 +26,19 @@ public class Utils {
 
         byte[] embeddedPictureBytes = retriever.getEmbeddedPicture();
 
-        if (embeddedPictureBytes != null){
+        if (embeddedPictureBytes != null) {
             bitmap = BitmapFactory.decodeByteArray(embeddedPictureBytes, 0, embeddedPictureBytes.length);
         }
 
         return bitmap;
     }
 
-    public static Uri getImageUri(Context context, Bitmap bitmap){
-        if (bitmap == null){
+    public static Bitmap getDefaultBitmap(Context context) {
+        return BitmapFactory.decodeResource(context.getApplicationContext().getResources(), R.drawable.music_playing_default);
+    }
+
+    public static Uri getImageUri(Context context, Bitmap bitmap) {
+        if (bitmap == null) {
             return null;
         }
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -40,6 +47,11 @@ public class Utils {
                 bitmap, "Album art", null);
 
         return Uri.parse(path);
+    }
+
+    public static Uri getUriFromAlbumId(long albumId) {
+        Uri allAlbumArts = Uri.parse("content://media/external/audio/albumart");
+        return ContentUris.withAppendedId(allAlbumArts, albumId);
     }
 
 }
