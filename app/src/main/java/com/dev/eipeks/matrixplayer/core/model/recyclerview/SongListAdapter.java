@@ -2,6 +2,8 @@ package com.dev.eipeks.matrixplayer.core.model.recyclerview;
 
 import android.content.Context;
 import android.databinding.DataBindingUtil;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -13,6 +15,7 @@ import com.dev.eipeks.matrixplayer.R;
 import com.dev.eipeks.matrixplayer.core.model.SongModel;
 import com.dev.eipeks.matrixplayer.core.store.OfflineStore;
 import com.dev.eipeks.matrixplayer.databinding.SongItemsBinding;
+import com.dev.eipeks.matrixplayer.global.Utils;
 
 
 import java.util.List;
@@ -22,7 +25,7 @@ import java.util.List;
  * Created by eipeks on 3/27/18.
  */
 
-public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongViewHolder>{
+public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongViewHolder> {
 
     private List<SongModel> songs;
     private LayoutInflater inflater;
@@ -31,7 +34,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
 
     private PlaySongListener listener;
 
-    public SongListAdapter(List<SongModel> songs, Context context){
+    public SongListAdapter(List<SongModel> songs, Context context) {
         Log.i("Matrix Player: Adapter", String.valueOf(songs.size()));
         this.songs = songs;
         this.context = context;
@@ -40,7 +43,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
     @NonNull
     @Override
     public SongViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (inflater == null){
+        if (inflater == null) {
             inflater = LayoutInflater.from(context);
         }
 
@@ -55,7 +58,7 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
         holder.getBinding().songItemRoot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (listener != null){
+                if (listener != null) {
                     listener.onPlaySongClicked(model);
                 }
             }
@@ -68,15 +71,15 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
         return songs.size();
     }
 
-    public List<SongModel> getSongs(){
+    public List<SongModel> getSongs() {
         return this.songs;
     }
 
-    public void setPlayClickedListener(PlaySongListener listener){
+    public void setPlayClickedListener(PlaySongListener listener) {
         this.listener = listener;
     }
 
-    public interface PlaySongListener{
+    public interface PlaySongListener {
         void onPlaySongClicked(SongModel model);
     }
 
@@ -89,11 +92,17 @@ public class SongListAdapter extends RecyclerView.Adapter<SongListAdapter.SongVi
             this.binding = binding;
         }
 
-        public void bind(SongModel model){
+        public void bind(SongModel model) {
             binding.setSong(model);
+            Uri songUriFromAlbum = Utils.getUriFromAlbumId(model.albumId);
+
+            binding.songImage.setImageURI(songUriFromAlbum);
+            if (binding.songImage.getDrawable() == null) {
+                binding.songImage.setImageBitmap(Utils.getDefaultBitmap(context));
+            }
         }
 
-        public SongItemsBinding getBinding(){
+        public SongItemsBinding getBinding() {
             return binding;
         }
     }

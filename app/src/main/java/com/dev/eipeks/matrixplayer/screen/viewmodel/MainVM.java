@@ -54,7 +54,7 @@ public class MainVM extends CoreVM {
     private long lastSongPlayedDuration;
 
     private boolean shuffleState;
-  
+
     public static boolean activityIsVisible;
     public static boolean mediaPlayerIsCurrentlyPlaying;
     public static int pausePlayIcon;
@@ -82,12 +82,13 @@ public class MainVM extends CoreVM {
                         String songArtist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
                         String songPath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
                         long songDuration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+                        long albumId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID));
 
                         if (songArtist.contains("unknown")){
                             songArtist = "Unknown Artist";
                         }
 
-                        SongModel model = new SongModel(songName, songArtist, _id, songPath, songDuration);
+                        SongModel model = new SongModel(songName, songArtist, _id, songPath, songDuration, albumId);
                         songList.add(model);
                     } while (cursor.moveToNext());
 
@@ -99,23 +100,25 @@ public class MainVM extends CoreVM {
         });
     }
 
-    public SongModel getSongInfoFromIntent(ContentResolver resolver, Uri uri){
-        Cursor cursor = resolver.query(uri, null, null,null, null);
-        if (cursor != null && cursor.moveToFirst()){
+    public SongModel getSongInfoFromIntent(ContentResolver resolver, Uri uri) {
+        Cursor cursor = resolver.query(uri, null, null, null, null);
+        if (cursor != null && cursor.moveToFirst()) {
             long _id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
             String songName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
             String songArtist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
             String songPath = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
             long songDuration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
+            long albumId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID));
 
             cursor.close();
 
-            songFromIntent = new SongModel(songName, songArtist, _id, songPath, songDuration);
+            songFromIntent = new SongModel(songName, songArtist, _id, songPath, songDuration, albumId);
 
             return songFromIntent;
         }
 
         return null;
+    }
     public void fillShuffledList(){
         shuffleList.addAll(songList);
     }

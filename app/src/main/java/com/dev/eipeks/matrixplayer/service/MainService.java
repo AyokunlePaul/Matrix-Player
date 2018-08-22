@@ -419,7 +419,7 @@ public class MainService extends Service{
                 PendingIntent.FLAG_CANCEL_CURRENT));
         builder.setLargeIcon(Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath) != null ?
                 Utils.getSongBitmap(mainVM.getLastSongPlayed().songPath) :
-                BitmapFactory.decodeResource(getResources(), R.drawable.music_playing_default));
+               Utils.getDefaultBitmap(this));
         builder.setOnlyAlertOnce(true);
         builder.setOngoing(MainVM.isOnGoing);
         builder.addAction(new NotificationCompat.Action(R.drawable.prev_button_drawable, "Play Previous", previousPendingIntent));
